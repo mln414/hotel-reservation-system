@@ -1,11 +1,9 @@
 package com.lankastay.backend.controller;
 
 import com.lankastay.backend.entity.Discount;
-import com.lankastay.backend.security.StaffPrincipal;
 import com.lankastay.backend.service.DiscountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,11 +21,9 @@ public class DiscountController {
 
     @GetMapping
     public List<Discount> getDiscounts(
-            @RequestParam(required = false) Long hotelId,
-            @AuthenticationPrincipal StaffPrincipal principal
+            @RequestParam(required = false) Long hotelId
     ) {
-        Long targetHotelId = "MANAGER".equalsIgnoreCase(principal.role()) ? hotelId : principal.assignedHotelId();
-        return discountService.getAllDiscounts(targetHotelId);
+        return discountService.getAllDiscounts(hotelId);
     }
 
     @GetMapping("/{id}")
@@ -51,10 +47,7 @@ public class DiscountController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
-    public Discount createDiscount(@RequestBody Discount discount, @AuthenticationPrincipal StaffPrincipal principal) {
-        if (!"MANAGER".equalsIgnoreCase(principal.role()) && principal.assignedHotelId() != null) {
-            discount.setHotelId(principal.assignedHotelId());
-        }
+    public Discount createDiscount(@RequestBody Discount discount) {
         return discountService.createDiscount(discount);
     }
 
