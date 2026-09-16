@@ -41,7 +41,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("select r from Reservation r where r.id = :id and r.customerId = :customerId")
     Optional<Reservation> findByIdAndCustomerIdForUpdate(@Param("id") Long id, @Param("customerId") UUID customerId);
     boolean existsByHotelIdAndAssignedRoomNumberIgnoreCase(Long hotelId, String assignedRoomNumber);
-    boolean existsByAssignedPhysicalRoomId(Long assignedPhysicalRoomId);
     @Query("select count(r) from Reservation r where r.hotelId = :hotelId and lower(r.assignedRoomNumber) = lower(:number) " +
            "and r.id <> :excludeId and r.reservationStatus = com.lankastay.backend.entity.ReservationStatus.CONFIRMED " +
            "and r.checkIn < :checkOut and r.checkOut > :checkIn")

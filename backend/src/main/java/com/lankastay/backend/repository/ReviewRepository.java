@@ -18,6 +18,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     long countByHotelIdAndStatus(Long hotelId, ReviewStatus status);
 
     long countByStatus(ReviewStatus status);
+    boolean existsByReservationId(Long reservationId);
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.hotelId = :hotelId AND r.status = :status")
     Double calculateAverageRating(@Param("hotelId") Long hotelId, @Param("status") ReviewStatus status);

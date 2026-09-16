@@ -24,8 +24,16 @@ public class CustomerReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<ReviewResponse> submitReview(@Valid @RequestBody CreateReviewRequest request) {
-        ReviewResponse response = reviewService.submitReview(request, null);
+    public ResponseEntity<ReviewResponse> submitReview(@Valid @RequestBody CreateReviewRequest request,
+                                                       jakarta.servlet.http.HttpServletRequest servletRequest) {
+        jakarta.servlet.http.HttpSession session = servletRequest.getSession(false);
+        java.util.UUID customerId = null;
+        if (session != null && session.getAttribute("LANKASTAY_CUSTOMER_USER") != null) {
+            try {
+                customerId = java.util.UUID.fromString((String) session.getAttribute("LANKASTAY_CUSTOMER_USER"));
+            } catch (Exception ignored) {}
+        }
+        ReviewResponse response = reviewService.submitReview(request, customerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

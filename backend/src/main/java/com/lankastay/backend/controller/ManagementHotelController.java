@@ -27,7 +27,7 @@ public class ManagementHotelController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF', 'RECEPTIONIST')")
     public List<HotelResponse> listHotels(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long destinationId,
@@ -40,7 +40,7 @@ public class ManagementHotelController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF', 'RECEPTIONIST')")
     public HotelResponse getHotel(
             @PathVariable Long id,
             @AuthenticationPrincipal StaffPrincipal principal

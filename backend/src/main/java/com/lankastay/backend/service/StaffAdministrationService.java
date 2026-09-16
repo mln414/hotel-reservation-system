@@ -102,6 +102,14 @@ public class StaffAdministrationService {
     }
 
     @Transactional
+    public void delete(UUID id, UUID actorId, String ip) {
+        StaffUser target = requireManageableTarget(id, actorId);
+        sessions.revokeAll(target.getEmail());
+        users.delete(target);
+        audit.record(actorId, id, SecurityEventType.ACCOUNT_DISABLED, ip, "DELETED");
+    }
+
+    @Transactional
     public ResetStaffPasswordResponse resetPassword(UUID id, UUID actorId, String ip) {
         StaffUser target = requireManageableTarget(id, actorId);
         String temporaryPassword = passwords.generate();

@@ -1,7 +1,7 @@
 package com.lankastay.backend.controller;
 
-import com.lankastay.backend.dto.review.HotelRatingSummaryResponse;
-import com.lankastay.backend.dto.review.PublicReviewResponse;
+import com.lankastay.backend.dto.review.ReviewResponse;
+import com.lankastay.backend.dto.review.ReviewSummaryResponse;
 import com.lankastay.backend.service.ReviewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,20 +19,22 @@ public class PublicReviewController {
     }
 
     @GetMapping("/hotels/{hotelId}/reviews")
-    public ResponseEntity<List<PublicReviewResponse>> getHotelReviews(@PathVariable Long hotelId) {
-        return ResponseEntity.ok(reviewService.getPublicHotelReviews(hotelId));
+    public ResponseEntity<List<ReviewResponse>> getHotelReviews(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(reviewService.getApprovedReviewsForHotel(hotelId));
     }
 
     @GetMapping("/hotels/{hotelId}/ratings")
-    public ResponseEntity<HotelRatingSummaryResponse> getHotelRatingSummary(@PathVariable Long hotelId) {
-        return ResponseEntity.ok(reviewService.getHotelRatingSummary(hotelId));
+    public ResponseEntity<ReviewSummaryResponse> getHotelRatingSummary(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(reviewService.getHotelReviewSummary(hotelId));
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<List<PublicReviewResponse>> getPublicReviews(
+    public ResponseEntity<List<ReviewResponse>> getPublicReviews(
             @RequestParam(required = false) Long hotelId,
             @RequestParam(required = false) Integer rating,
             @RequestParam(required = false) String sort) {
-        return ResponseEntity.ok(reviewService.getPublicReviews(hotelId, rating, sort));
+        List<ReviewResponse> reviews = hotelId == null ? List.of() : reviewService.getApprovedReviewsForHotel(hotelId);
+        if (rating != null) reviews = reviews.stream().filter(r -> r.rating() != null && r.rating().intValue() == rating).toList();
+        return ResponseEntity.ok(reviews);
     }
 }
