@@ -11,13 +11,19 @@ public record ReservationResponse(
         Integer nights, Integer adults, Integer children, Integer rooms, Long roomId, BigDecimal roomRate,
         BigDecimal subtotalAmount, BigDecimal discountAmount, BigDecimal totalAmount, BigDecimal estimatedTotal,
         Long appliedOfferId, String offerTitleSnapshot, String status, String paymentStatus,
-        String assignmentState, String assignedRoomNumber, GuestResponse guest, List<ReservationItemResponse> items,
+        String assignmentState, String assignedRoomNumber, Long assignedPhysicalRoomId, List<Long> assignedPhysicalRoomIds,
+        GuestResponse guest, List<ReservationItemResponse> items,
         String specialRequests, String estimatedArrivalTime, LocalDateTime cancelledAt, String cancellationReason,
         String cancellationNote, LocalDateTime createdAt, LocalDateTime updatedAt
 ) {
     public record GuestResponse(String name, String email, String phone) {}
 
     public static ReservationResponse from(Reservation reservation, List<ReservationItemResponse> items) {
+        return from(reservation, items, reservation.getAssignedPhysicalRoomId() == null
+                ? List.of() : List.of(reservation.getAssignedPhysicalRoomId()));
+    }
+
+    public static ReservationResponse from(Reservation reservation, List<ReservationItemResponse> items, List<Long> physicalIds) {
         ReservationItemResponse first = items.isEmpty() ? null : items.get(0);
         return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getReservationCode(),
                 reservation.getHotelId(), reservation.getCheckIn(), reservation.getCheckOut(), reservation.getNumberOfNights(),
@@ -26,7 +32,7 @@ public record ReservationResponse(
                 reservation.getSubtotalAmount(), reservation.getDiscountAmount(), reservation.getTotalAmount(),
                 reservation.getTotalAmount(), reservation.getAppliedOfferId(), reservation.getOfferTitleSnapshot(),
                 reservation.getReservationStatus().name(), reservation.getPaymentStatus().name(),
-                reservation.getAssignmentState().name(), reservation.getAssignedRoomNumber(),
+                reservation.getAssignmentState().name(), reservation.getAssignedRoomNumber(), reservation.getAssignedPhysicalRoomId(), physicalIds,
                 new GuestResponse(reservation.getGuestName(), reservation.getGuestEmail(), reservation.getGuestPhone()),
                 items, reservation.getSpecialRequests(), reservation.getEstimatedArrivalTime(), reservation.getCancelledAt(),
                 reservation.getCancellationReason(), reservation.getCancellationNote(), reservation.getCreatedAt(), reservation.getUpdatedAt());
