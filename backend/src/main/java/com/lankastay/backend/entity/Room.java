@@ -1,11 +1,19 @@
 package com.lankastay.backend.entity;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "rooms")
 public class Room {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +28,7 @@ public class Room {
     @Column(nullable = false, unique = true, length = 180)
     private String slug;
 
-    @Column(name = "room_category", nullable = false, length = 40)
+    @Column(name = "room_category", length = 50)
     private String roomCategory;
 
     @Column(columnDefinition = "TEXT")
@@ -44,8 +52,8 @@ public class Room {
     @Column(name = "inventory_count")
     private Integer inventoryCount = 0;
 
-    @Column(name = "base_price", nullable = false)
-    private Double basePrice = 0.0;
+    @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal basePrice = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
@@ -62,7 +70,8 @@ public class Room {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Room() {}
+    public Room() {
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -112,8 +121,8 @@ public class Room {
     public Integer getInventoryCount() { return inventoryCount; }
     public void setInventoryCount(Integer inventoryCount) { this.inventoryCount = inventoryCount; }
 
-    public Double getBasePrice() { return basePrice; }
-    public void setBasePrice(Double basePrice) { this.basePrice = basePrice; }
+    public BigDecimal getBasePrice() { return basePrice; }
+    public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -126,4 +135,24 @@ public class Room {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    public List<String> getAmenities() {
+        if (amenitiesJson == null || amenitiesJson.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            return OBJECT_MAPPER.readValue(amenitiesJson, new TypeReference<List<String>>() {
+            });
+        } catch (Exception ex) {
+            return new ArrayList<>();
+        }
+    }
+
+    public void setAmenities(List<String> amenities) {
+        try {
+            this.amenitiesJson = OBJECT_MAPPER.writeValueAsString(amenities == null ? List.of() : amenities);
+        } catch (Exception ex) {
+            this.amenitiesJson = "[]";
+        }
+    }
 }
