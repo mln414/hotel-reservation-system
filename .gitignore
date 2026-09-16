@@ -3,3 +3,4 @@ uploads/
 *.log
 .env
 application-local.properties
+.vscode/

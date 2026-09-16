@@ -1,7 +1,9 @@
+// SE2030 LankaStay - Customer Review Management and Moderation
 package com.lankastay.backend.entity;
 
 public enum ReviewStatus {
-    ACTIVE,
-    HIDDEN_BY_MODERATION,
-    DELETED_BY_CUSTOMER
+    PENDING,
+    APPROVED,
+    REJECTED,
+    FLAGGED
 }

@@ -1,159 +1,160 @@
+// SE2030 LankaStay - Customer Review Management and Moderation
 package com.lankastay.backend.entity;
 
 import jakarta.persistence.*;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reviews", indexes = {
-        @Index(name = "idx_reviews_hotel_status_created", columnList = "hotel_id,status,created_at"),
-        @Index(name = "idx_reviews_customer_created", columnList = "customer_id,created_at"),
-        @Index(name = "idx_reviews_status", columnList = "status")
-})
+@Table(name = "reviews")
 public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private CustomerUser customer;
+    @Column(name = "hotel_id", nullable = false)
+    private Long hotelId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "hotel_id", nullable = false)
-    private Hotel hotel;
+    @Column(name = "customer_id")
+    private UUID customerId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reservation_id", nullable = false, unique = true)
-    private Reservation reservation;
+    @Column(name = "reservation_id")
+    private Long reservationId;
 
-    @Column(name = "overall_rating", nullable = false)
-    private int overallRating;
+    @Column(name = "guest_name", nullable = false, length = 150)
+    private String guestName;
+
+    @Column(name = "guest_email", nullable = false, length = 150)
+    private String guestEmail;
+
+    @Column(nullable = false)
+    private Double rating;
 
     @Column(name = "cleanliness_rating")
-    private Integer cleanlinessRating;
+    private Double cleanlinessRating;
 
-    @Column(name = "comfort_rating")
-    private Integer comfortRating;
-
-    @Column(name = "staff_service_rating")
-    private Integer staffServiceRating;
+    @Column(name = "staff_rating")
+    private Double staffRating;
 
     @Column(name = "facilities_rating")
-    private Integer facilitiesRating;
+    private Double facilitiesRating;
 
     @Column(name = "location_rating")
-    private Integer locationRating;
+    private Double locationRating;
 
-    @Column(name = "value_for_money_rating")
-    private Integer valueForMoneyRating;
+    @Column(name = "value_rating")
+    private Double valueRating;
 
-    @Column(name = "title", nullable = false, length = 120)
+    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String comment;
 
+    @Column(name = "trip_type", length = 50)
+    private String tripType;
+
+    @Column(name = "room_type", length = 100)
+    private String roomType;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
-    private ReviewStatus status = ReviewStatus.ACTIVE;
+    @Column(nullable = false, length = 20)
+    private ReviewStatus status = ReviewStatus.PENDING;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "review_photos", joinColumns = @JoinColumn(name = "review_id"))
-    @Column(name = "photo_url", nullable = false, length = 500)
-    @OrderColumn(name = "sort_order")
-    private List<String> photos = new ArrayList<>();
-
-    @Column(name = "customer_updated_at")
-    private Instant customerUpdatedAt;
-
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
-
-    @Column(name = "moderation_reason", length = 100)
-    private String moderationReason;
-
-    @Column(name = "moderation_note", columnDefinition = "TEXT")
+    @Column(name = "moderation_note", length = 500)
     private String moderationNote;
 
-    @Column(name = "hidden_at")
-    private Instant hiddenAt;
+    @Column(name = "moderated_by")
+    private UUID moderatedBy;
 
-    @Column(name = "hidden_by_staff_id")
-    private UUID hiddenByStaffId;
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
 
-    @Column(name = "management_response", columnDefinition = "TEXT")
-    private String managementResponse;
+    @Column(name = "is_verified_stay", nullable = false)
+    private boolean isVerifiedStay = false;
 
-    @Column(name = "response_created_at")
-    private Instant responseCreatedAt;
+    @Column(name = "helpful_count", nullable = false)
+    private int helpfulCount = 0;
 
-    @Column(name = "response_updated_at")
-    private Instant responseUpdatedAt;
+    @Column(name = "management_reply", columnDefinition = "TEXT")
+    private String managementReply;
 
-    @Column(name = "response_by_staff_id")
-    private UUID responseByStaffId;
+    @Column(name = "replied_by")
+    private UUID repliedBy;
 
-    @Column(name = "response_role", length = 50)
-    private String responseRole;
+    @Column(name = "replied_by_name", length = 100)
+    private String repliedByName;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "review_images", joinColumns = @JoinColumn(name = "review_id"))
+    @OrderColumn(name = "display_order")
+    @Column(name = "image_url", length = 500, nullable = false)
+    private List<String> images = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        if (createdAt == null) createdAt = now;
-        if (updatedAt == null) updatedAt = now;
-        if (status == null) status = ReviewStatus.ACTIVE;
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+        if (this.status == null) {
+            this.status = ReviewStatus.PENDING;
+        }
     }
 
     @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Review() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public CustomerUser getCustomer() { return customer; }
-    public void setCustomer(CustomerUser customer) { this.customer = customer; }
+    public Long getHotelId() { return hotelId; }
+    public void setHotelId(Long hotelId) { this.hotelId = hotelId; }
 
-    public Hotel getHotel() { return hotel; }
-    public void setHotel(Hotel hotel) { this.hotel = hotel; }
+    public UUID getCustomerId() { return customerId; }
+    public void setCustomerId(UUID customerId) { this.customerId = customerId; }
 
-    public Reservation getReservation() { return reservation; }
-    public void setReservation(Reservation reservation) { this.reservation = reservation; }
+    public Long getReservationId() { return reservationId; }
+    public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
 
-    public int getOverallRating() { return overallRating; }
-    public void setOverallRating(int overallRating) { this.overallRating = overallRating; }
+    public String getGuestName() { return guestName; }
+    public void setGuestName(String guestName) { this.guestName = guestName; }
 
-    public Integer getCleanlinessRating() { return cleanlinessRating; }
-    public void setCleanlinessRating(Integer cleanlinessRating) { this.cleanlinessRating = cleanlinessRating; }
+    public String getGuestEmail() { return guestEmail; }
+    public void setGuestEmail(String guestEmail) { this.guestEmail = guestEmail; }
 
-    public Integer getComfortRating() { return comfortRating; }
-    public void setComfortRating(Integer comfortRating) { this.comfortRating = comfortRating; }
+    public Double getRating() { return rating; }
+    public void setRating(Double rating) { this.rating = rating; }
 
-    public Integer getStaffServiceRating() { return staffServiceRating; }
-    public void setStaffServiceRating(Integer staffServiceRating) { this.staffServiceRating = staffServiceRating; }
+    public Double getCleanlinessRating() { return cleanlinessRating; }
+    public void setCleanlinessRating(Double cleanlinessRating) { this.cleanlinessRating = cleanlinessRating; }
 
-    public Integer getFacilitiesRating() { return facilitiesRating; }
-    public void setFacilitiesRating(Integer facilitiesRating) { this.facilitiesRating = facilitiesRating; }
+    public Double getStaffRating() { return staffRating; }
+    public void setStaffRating(Double staffRating) { this.staffRating = staffRating; }
 
-    public Integer getLocationRating() { return locationRating; }
-    public void setLocationRating(Integer locationRating) { this.locationRating = locationRating; }
+    public Double getFacilitiesRating() { return facilitiesRating; }
+    public void setFacilitiesRating(Double facilitiesRating) { this.facilitiesRating = facilitiesRating; }
 
-    public Integer getValueForMoneyRating() { return valueForMoneyRating; }
-    public void setValueForMoneyRating(Integer valueForMoneyRating) { this.valueForMoneyRating = valueForMoneyRating; }
+    public Double getLocationRating() { return locationRating; }
+    public void setLocationRating(Double locationRating) { this.locationRating = locationRating; }
+
+    public Double getValueRating() { return valueRating; }
+    public void setValueRating(Double valueRating) { this.valueRating = valueRating; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -161,57 +162,48 @@ public class Review {
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }
 
+    public String getTripType() { return tripType; }
+    public void setTripType(String tripType) { this.tripType = tripType; }
+
+    public String getRoomType() { return roomType; }
+    public void setRoomType(String roomType) { this.roomType = roomType; }
+
     public ReviewStatus getStatus() { return status; }
     public void setStatus(ReviewStatus status) { this.status = status; }
-
-    public List<String> getPhotos() { return photos; }
-    public void setPhotos(List<String> photos) {
-        if (this.photos == null) {
-            this.photos = new ArrayList<>();
-        } else {
-            this.photos.clear();
-        }
-        if (photos != null) {
-            this.photos.addAll(photos);
-        }
-    }
-
-    public Instant getCustomerUpdatedAt() { return customerUpdatedAt; }
-    public void setCustomerUpdatedAt(Instant customerUpdatedAt) { this.customerUpdatedAt = customerUpdatedAt; }
-
-    public Instant getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
-
-    public String getModerationReason() { return moderationReason; }
-    public void setModerationReason(String moderationReason) { this.moderationReason = moderationReason; }
 
     public String getModerationNote() { return moderationNote; }
     public void setModerationNote(String moderationNote) { this.moderationNote = moderationNote; }
 
-    public Instant getHiddenAt() { return hiddenAt; }
-    public void setHiddenAt(Instant hiddenAt) { this.hiddenAt = hiddenAt; }
+    public UUID getModeratedBy() { return moderatedBy; }
+    public void setModeratedBy(UUID moderatedBy) { this.moderatedBy = moderatedBy; }
 
-    public UUID getHiddenByStaffId() { return hiddenByStaffId; }
-    public void setHiddenByStaffId(UUID hiddenByStaffId) { this.hiddenByStaffId = hiddenByStaffId; }
+    public LocalDateTime getModeratedAt() { return moderatedAt; }
+    public void setModeratedAt(LocalDateTime moderatedAt) { this.moderatedAt = moderatedAt; }
 
-    public String getManagementResponse() { return managementResponse; }
-    public void setManagementResponse(String managementResponse) { this.managementResponse = managementResponse; }
+    public boolean isVerifiedStay() { return isVerifiedStay; }
+    public void setVerifiedStay(boolean verifiedStay) { isVerifiedStay = verifiedStay; }
 
-    public Instant getResponseCreatedAt() { return responseCreatedAt; }
-    public void setResponseCreatedAt(Instant responseCreatedAt) { this.responseCreatedAt = responseCreatedAt; }
+    public int getHelpfulCount() { return helpfulCount; }
+    public void setHelpfulCount(int helpfulCount) { this.helpfulCount = helpfulCount; }
 
-    public Instant getResponseUpdatedAt() { return responseUpdatedAt; }
-    public void setResponseUpdatedAt(Instant responseUpdatedAt) { this.responseUpdatedAt = responseUpdatedAt; }
+    public String getManagementReply() { return managementReply; }
+    public void setManagementReply(String managementReply) { this.managementReply = managementReply; }
 
-    public UUID getResponseByStaffId() { return responseByStaffId; }
-    public void setResponseByStaffId(UUID responseByStaffId) { this.responseByStaffId = responseByStaffId; }
+    public UUID getRepliedBy() { return repliedBy; }
+    public void setRepliedBy(UUID repliedBy) { this.repliedBy = repliedBy; }
 
-    public String getResponseRole() { return responseRole; }
-    public void setResponseRole(String responseRole) { this.responseRole = responseRole; }
+    public String getRepliedByName() { return repliedByName; }
+    public void setRepliedByName(String repliedByName) { this.repliedByName = repliedByName; }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getRepliedAt() { return repliedAt; }
+    public void setRepliedAt(LocalDateTime repliedAt) { this.repliedAt = repliedAt; }
 
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images != null ? images : new ArrayList<>(); }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -13,11 +13,13 @@ import java.util.UUID;
 
 public record StaffPrincipal(
         UUID id, String username, String password, String role, StaffStatus status,
-        boolean mustChangePassword, Instant lockedUntil
+        boolean mustChangePassword, Instant lockedUntil, Long assignedHotelId,
+        String firstName, String lastName
 ) implements UserDetails {
     public static StaffPrincipal from(StaffUser user) {
         return new StaffPrincipal(user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole().name(),
-                user.getStatus(), user.isMustChangePassword(), user.getLockedUntil());
+                user.getStatus(), user.isMustChangePassword(), user.getLockedUntil(),
+                user.getAssignedHotelId(), user.getFirstName(), user.getLastName());
     }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {

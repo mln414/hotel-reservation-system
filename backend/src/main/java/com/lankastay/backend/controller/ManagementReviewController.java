@@ -1,12 +1,10 @@
+// SE2030 LankaStay - Customer Review Management and Moderation
 package com.lankastay.backend.controller;
 
-import com.lankastay.backend.dto.review.HideReviewRequest;
-import com.lankastay.backend.dto.review.ManagementReviewResponseRequest;
-import com.lankastay.backend.dto.review.ReviewResponse;
+import com.lankastay.backend.dto.review.*;
 import com.lankastay.backend.entity.ReviewStatus;
 import com.lankastay.backend.security.StaffPrincipal;
 import com.lankastay.backend.service.ReviewService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,10 +12,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/management/reviews")
-@PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
 public class ManagementReviewController {
 
     private final ReviewService reviewService;
@@ -27,68 +25,66 @@ public class ManagementReviewController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ReviewResponse>> listReviews(
-            @AuthenticationPrincipal StaffPrincipal principal,
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    public ResponseEntity<List<ReviewResponse>> getReviews(
             @RequestParam(required = false) Long hotelId,
+            @RequestParam(required = false) ReviewStatus status,
+            @RequestParam(required = false) Double minRating,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Integer rating,
-            @RequestParam(required = false) ReviewStatus status) {
-        return ResponseEntity.ok(reviewService.getManagementReviews(principal, hotelId, search, rating, status));
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        List<ReviewResponse> list = reviewService.getManagementReviews(hotelId, status, minRating, search, principal);
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    public ResponseEntity<ReviewStatsResponse> getReviewStats(
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        ReviewStatsResponse stats = reviewService.getReviewStats(principal);
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ReviewResponse> getReview(
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    public ResponseEntity<ReviewResponse> getReviewById(
             @PathVariable Long id,
-            @AuthenticationPrincipal StaffPrincipal principal) {
-        return ResponseEntity.ok(reviewService.getManagementReviewById(principal, id));
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        ReviewResponse response = reviewService.getReviewById(id, principal);
+        return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{id}/hide")
-    public ResponseEntity<ReviewResponse> hideReview(
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    public ResponseEntity<ReviewResponse> updateStatus(
             @PathVariable Long id,
-            @Valid @RequestBody HideReviewRequest request,
-            @AuthenticationPrincipal StaffPrincipal principal,
-            HttpServletRequest servletRequest) {
-        return ResponseEntity.ok(reviewService.hideReview(principal, id, request, clientIp(servletRequest)));
+            @Valid @RequestBody ReviewStatusUpdateRequest request,
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        ReviewResponse response = reviewService.updateReviewStatus(id, request.status(), request.moderationNote(), principal);
+        return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{id}/restore")
-    public ResponseEntity<ReviewResponse> restoreReview(
+    @PostMapping("/{id}/reply")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
+    public ResponseEntity<ReviewResponse> replyToReview(
             @PathVariable Long id,
-            @AuthenticationPrincipal StaffPrincipal principal,
-            HttpServletRequest servletRequest) {
-        return ResponseEntity.ok(reviewService.restoreReview(principal, id, clientIp(servletRequest)));
+            @Valid @RequestBody ReviewReplyRequest request,
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        ReviewResponse response = reviewService.replyToReview(id, request.reply(), principal);
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/response")
-    public ResponseEntity<ReviewResponse> addResponse(
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Map<String, String>> deleteReview(
             @PathVariable Long id,
-            @Valid @RequestBody ManagementReviewResponseRequest request,
-            @AuthenticationPrincipal StaffPrincipal principal,
-            HttpServletRequest servletRequest) {
-        return ResponseEntity.ok(reviewService.addResponse(principal, id, request, clientIp(servletRequest)));
-    }
-
-    @PutMapping("/{id}/response")
-    public ResponseEntity<ReviewResponse> updateResponse(
-            @PathVariable Long id,
-            @Valid @RequestBody ManagementReviewResponseRequest request,
-            @AuthenticationPrincipal StaffPrincipal principal,
-            HttpServletRequest servletRequest) {
-        return ResponseEntity.ok(reviewService.updateResponse(principal, id, request, clientIp(servletRequest)));
-    }
-
-    @DeleteMapping("/{id}/response")
-    public ResponseEntity<Void> removeResponse(
-            @PathVariable Long id,
-            @AuthenticationPrincipal StaffPrincipal principal,
-            HttpServletRequest servletRequest) {
-        reviewService.removeResponse(principal, id, clientIp(servletRequest));
-        return ResponseEntity.noContent().build();
-    }
-
-    private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        return (forwarded != null && !forwarded.isBlank()) ? forwarded.split(",")[0].trim() : request.getRemoteAddr();
+            @AuthenticationPrincipal StaffPrincipal principal
+    ) {
+        reviewService.deleteReview(id, principal);
+        return ResponseEntity.ok(Map.of("message", "Review successfully deleted"));
     }
 }
