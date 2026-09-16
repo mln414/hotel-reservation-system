@@ -5,9 +5,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public record ReservationResponse(
-        Long id, String reservationCode, String reference, Long hotelId, LocalDate checkIn, LocalDate checkOut,
+        Long id, String reservationCode, String reference, Long hotelId, UUID customerId, LocalDate checkIn, LocalDate checkOut,
         Integer nights, Integer adults, Integer children, Integer rooms, Long roomId, BigDecimal roomRate,
         BigDecimal subtotalAmount, BigDecimal discountAmount, BigDecimal totalAmount, BigDecimal estimatedTotal,
         Long appliedOfferId, String offerTitleSnapshot, String status, String paymentStatus,
@@ -21,7 +22,7 @@ public record ReservationResponse(
     public static ReservationResponse from(Reservation reservation, List<ReservationItemResponse> items) {
         ReservationItemResponse first = items.isEmpty() ? null : items.get(0);
         return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getReservationCode(),
-                reservation.getHotelId(), reservation.getCheckIn(), reservation.getCheckOut(), reservation.getNumberOfNights(),
+                reservation.getHotelId(), reservation.getCustomerId(), reservation.getCheckIn(), reservation.getCheckOut(), reservation.getNumberOfNights(),
                 reservation.getAdults(), reservation.getChildren(), first == null ? 0 : first.quantity(),
                 first == null ? null : first.roomId(), first == null ? BigDecimal.ZERO : first.nightlyRateSnapshot(),
                 reservation.getSubtotalAmount(), reservation.getDiscountAmount(), reservation.getTotalAmount(),

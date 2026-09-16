@@ -62,12 +62,15 @@ public class SecurityConfig {
                 .securityContext(config -> config.securityContextRepository(contextRepository))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf", "/api/destinations/**",
-                                "/api/public/hotels/**", "/api/public/reviews", "/uploads/**").permitAll()
+                                "/api/public/**", "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/dev-last-reset-link").permitAll()
                         .requestMatchers("/api/v1/customer/auth/**").permitAll()
+                        .requestMatchers("/api/v1/customer/reservations/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/management/discounts/validate").permitAll()
                         .requestMatchers("/api/v1/admin/staff/**").hasRole("MANAGER")
-                        .requestMatchers("/api/v1/hotels/**", "/api/management/**", "/api/media/**").hasAnyRole("MANAGER", "HOTEL_STAFF")
+                        .requestMatchers("/api/v1/hotels/**", "/api/management/**", "/api/v1/management/**", "/api/media/**").hasAnyRole("MANAGER", "HOTEL_STAFF", "RECEPTIONIST")
                         .requestMatchers("/api/v1/auth/**").authenticated()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
