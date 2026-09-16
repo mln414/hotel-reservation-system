@@ -27,28 +27,21 @@ public class CustomerReservationService {
     private final HotelRepository hotels;
     private final RoomRepository rooms;
     private final RoomRateRepository rates;
-    private final OfferRepository offers;
+    private final DiscountRepository discounts;
     private final SecurityAuditService audit;
-    private final PhysicalRoomRepository physicalRooms;
-    private final PhysicalRoomBlockRepository physicalBlocks;
-    private final ReservationPhysicalRoomRepository assignments;
     private final ReviewRepository reviews;
 
     public CustomerReservationService(ReservationRepository reservations, ReservationItemRepository items,
             HotelRepository hotels, RoomRepository rooms, RoomRateRepository rates,
-            OfferRepository offers, SecurityAuditService audit, PhysicalRoomRepository physicalRooms,
-            PhysicalRoomBlockRepository physicalBlocks, ReservationPhysicalRoomRepository assignments,
+            DiscountRepository discounts, SecurityAuditService audit,
             ReviewRepository reviews) {
         this.reservations = reservations;
         this.items = items;
         this.hotels = hotels;
         this.rooms = rooms;
         this.rates = rates;
-        this.offers = offers;
+        this.discounts = discounts;
         this.audit = audit;
-        this.physicalRooms = physicalRooms;
-        this.physicalBlocks = physicalBlocks;
-        this.assignments = assignments;
         this.reviews = reviews;
     }
 
@@ -81,11 +74,11 @@ public class CustomerReservationService {
 
         // Backend-authoritative offer evaluation
         BigDecimal discountAmount = BigDecimal.ZERO;
-        Offer appliedOffer = null;
+        Discount appliedDiscount = null;
         if (request.offerId() != null) {
-            Offer candidate = offers.findById(request.offerId())
-                    .orElseThrow(() -> badRequest("The selected offer does not exist."));
-            EvaluatedOffer evaluated = evaluateOffer(candidate, subtotal, nights, request.quantity(), hotel.getId(),
+        Discount candidate = discounts.findById(request.offerId())
+                .orElseThrow(() -> badRequest("The selected discount does not exist."));
+        EvaluatedDiscount evaluated = evaluateDiscount(candidate, subtotal, nights, hotel.getId(),
                     room,
                     request.checkIn(), request.checkOut(), LocalDate.now());
             if (evaluated == null) {
@@ -93,7 +86,7 @@ public class CustomerReservationService {
                         "The requested offer is no longer valid or eligible for your stay. Please review the updated quote.");
             }
             discountAmount = evaluated.discountAmount();
-            appliedOffer = evaluated.offer();
+            appliedDiscount = evaluated.discount();
         }
 
         BigDecimal finalTotal = subtotal.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
@@ -123,11 +116,11 @@ public class CustomerReservationService {
         reservation.setSpecialRequests(trimToNull(request.specialRequests()));
         reservation.setEstimatedArrivalTime(trimToNull(request.estimatedArrivalTime()));
 
-        if (appliedOffer != null) {
-            reservation.setAppliedOfferId(appliedOffer.getId());
-            reservation.setOfferTitleSnapshot(appliedOffer.getTitle());
-            reservation.setDiscountTypeSnapshot(appliedOffer.getDiscountType());
-            reservation.setDiscountValueSnapshot(appliedOffer.getDiscountValue());
+        if (appliedDiscount != null) {
+            reservation.setAppliedOfferId(appliedDiscount.getId());
+            reservation.setOfferTitleSnapshot(appliedDiscount.getTitle());
+            reservation.setDiscountTypeSnapshot(appliedDiscount.getDiscountType());
+            reservation.setDiscountValueSnapshot(BigDecimal.valueOf(appliedDiscount.getDiscountValue()));
         }
 
         Reservation saved = reservations.saveAndFlush(reservation);
@@ -181,7 +174,6 @@ public class CustomerReservationService {
             throw new ConflictException("A reservation linked to a review cannot be permanently deleted.");
         }
         try {
-            assignments.deleteByReservationId(id);
             items.deleteByReservationId(id);
             reservations.delete(reservation);
             reservations.flush();
@@ -243,9 +235,9 @@ public class CustomerReservationService {
         for (LocalDate date = request.checkIn(); date.isBefore(request.checkOut()); date = date.plusDays(1)) {
             boolean weekend = date.getDayOfWeek() == DayOfWeek.FRIDAY || date.getDayOfWeek() == DayOfWeek.SATURDAY;
             BigDecimal amount = weekend && rate.getWeekendNightlyRate() != null
-                    && rate.getWeekendNightlyRate().compareTo(BigDecimal.ZERO) > 0
-                            ? rate.getWeekendNightlyRate()
-                            : rate.getBaseNightlyRate();
+                    && rate.getWeekendNightlyRate() > 0
+                            ? BigDecimal.valueOf(rate.getWeekendNightlyRate())
+                            : BigDecimal.valueOf(rate.getBaseNightlyRate());
             nightly.add(new ReservationQuoteResponse.NightlyPrice(date, amount.setScale(2, RoundingMode.HALF_UP)));
         }
         BigDecimal subtotal = calculateTotal(rate, request.checkIn(), request.checkOut(), request.quantity());
@@ -256,25 +248,25 @@ public class CustomerReservationService {
         ReservationQuoteResponse.AppliedOfferDto appliedOfferDto = null;
 
         if (request.offerId() != null) {
-            Offer candidate = offers.findById(request.offerId())
-                    .orElseThrow(() -> badRequest("The selected offer does not exist."));
-            EvaluatedOffer evaluated = evaluateOffer(candidate, subtotal, nights, request.quantity(), hotel.getId(),
+            Discount candidate = discounts.findById(request.offerId())
+                    .orElseThrow(() -> badRequest("The selected discount does not exist."));
+            EvaluatedDiscount evaluated = evaluateDiscount(candidate, subtotal, nights, hotel.getId(),
                     room,
                     request.checkIn(), request.checkOut(), LocalDate.now());
             if (evaluated != null) {
                 discountAmount = evaluated.discountAmount();
                 appliedOfferDto = new ReservationQuoteResponse.AppliedOfferDto(
                         candidate.getId(), candidate.getTitle(), candidate.getDiscountType(),
-                        candidate.getDiscountValue(), candidate.getFixedDiscountScope(), discountAmount);
+                        BigDecimal.valueOf(candidate.getDiscountValue()), null, discountAmount);
             }
         } else {
-            EvaluatedOffer best = findBestOffer(subtotal, nights, request.quantity(), hotel.getId(), room,
+            EvaluatedDiscount best = findBestDiscount(subtotal, nights, hotel.getId(), room,
                     request.checkIn(), request.checkOut(), LocalDate.now());
             if (best != null) {
                 discountAmount = best.discountAmount();
                 appliedOfferDto = new ReservationQuoteResponse.AppliedOfferDto(
-                        best.offer().getId(), best.offer().getTitle(), best.offer().getDiscountType(),
-                        best.offer().getDiscountValue(), best.offer().getFixedDiscountScope(), discountAmount);
+                        best.discount().getId(), best.discount().getTitle(), best.discount().getDiscountType(),
+                        BigDecimal.valueOf(best.discount().getDiscountValue()), null, discountAmount);
             }
         }
 
@@ -333,7 +325,7 @@ public class CustomerReservationService {
             throw badRequest("The selected rate does not belong to this hotel and room.");
         }
         if (!"ACTIVE".equalsIgnoreCase(rate.getStatus()) || rate.getBaseNightlyRate() == null
-                || rate.getBaseNightlyRate().compareTo(BigDecimal.ZERO) <= 0) {
+                || rate.getBaseNightlyRate() <= 0) {
             throw badRequest("The selected rate is not active.");
         }
     }
@@ -347,9 +339,7 @@ public class CustomerReservationService {
     }
 
     private int effectiveCapacity(Room room, LocalDate night) {
-        return Math.max(0, room.getInventoryCount() - Math.toIntExact(
-                physicalRooms.countByRoomTypeIdAndBaseOperationalStatusNot(room.getId(), "AVAILABLE"))
-                - Math.toIntExact(physicalBlocks.countBlockedForNight(room.getId(), night)));
+        return Math.max(0, room.getInventoryCount());
     }
 
     private BigDecimal calculateTotal(RoomRate rate, LocalDate checkIn, LocalDate checkOut, int quantity) {
@@ -357,95 +347,44 @@ public class CustomerReservationService {
         for (LocalDate night = checkIn; night.isBefore(checkOut); night = night.plusDays(1)) {
             boolean weekend = night.getDayOfWeek() == DayOfWeek.FRIDAY || night.getDayOfWeek() == DayOfWeek.SATURDAY;
             BigDecimal amount = weekend && rate.getWeekendNightlyRate() != null
-                    && rate.getWeekendNightlyRate().compareTo(BigDecimal.ZERO) > 0
-                            ? rate.getWeekendNightlyRate()
-                            : rate.getBaseNightlyRate();
+                    && rate.getWeekendNightlyRate() > 0
+                            ? BigDecimal.valueOf(rate.getWeekendNightlyRate())
+                            : BigDecimal.valueOf(rate.getBaseNightlyRate());
             total = total.add(amount.multiply(BigDecimal.valueOf(quantity)));
         }
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private record EvaluatedOffer(Offer offer, BigDecimal discountAmount) {
+    private record EvaluatedDiscount(Discount discount, BigDecimal discountAmount) {
     }
 
-    private EvaluatedOffer evaluateOffer(Offer offer, BigDecimal subtotal, long nights, int quantity,
+    private EvaluatedDiscount evaluateDiscount(Discount candidate, BigDecimal subtotal, long nights,
             Long hotelId, Room room, LocalDate checkIn, LocalDate checkOut,
             LocalDate bookingDate) {
-        if (offer == null || !"ACTIVE".equalsIgnoreCase(offer.getStatus())) {
+        if (candidate == null || !"ACTIVE".equalsIgnoreCase(candidate.getStatus())) {
             return null;
         }
-
-        // Booking date window check
-        if (offer.getBookingStartDate() != null && bookingDate.isBefore(offer.getBookingStartDate())) {
+        if (candidate.getValidFrom() != null && bookingDate.isBefore(candidate.getValidFrom())
+                || candidate.getValidTo() != null && bookingDate.isAfter(candidate.getValidTo())) {
             return null;
         }
-        if (offer.getBookingEndDate() != null && bookingDate.isAfter(offer.getBookingEndDate())) {
+        if (candidate.getValidFrom() != null && checkIn.isBefore(candidate.getValidFrom())
+                || candidate.getValidTo() != null && checkOut.minusDays(1).isAfter(candidate.getValidTo())) {
             return null;
         }
-
-        // Stay date window check
-        if (checkIn.isBefore(offer.getStayStartDate()) || checkOut.minusDays(1).isAfter(offer.getStayEndDate())) {
+        if (candidate.getMinimumNights() != null && nights < candidate.getMinimumNights()) {
             return null;
         }
-
-        // Minimum and maximum stay
-        if (nights < offer.getMinimumStay()) {
+        if (candidate.getHotelId() != null && !candidate.getHotelId().equals(hotelId)) {
             return null;
         }
-        if (offer.getMaximumStay() != null && nights > offer.getMaximumStay()) {
-            return null;
-        }
-
-        // Targeting is the union displayed by Offer Management: an entire
-        // hotel, a room category, or one specific room type may make a room
-        // eligible.  It must not silently become an AND constraint at quote
-        // time, and category targets must be honoured by the backend too.
-        boolean hasHotelTargets = !offer.getTargetHotelIds().isEmpty();
-        boolean hasRoomTargets = !offer.getTargetRoomTypeIds().isEmpty();
-        Set<String> categoryTargets = offer.getTargetRoomCategoryKeys() == null || offer.getTargetRoomCategoryKeys().isBlank()
-                ? Set.of()
-                : Arrays.stream(offer.getTargetRoomCategoryKeys().split(","))
-                .map(String::trim).filter(value -> !value.isBlank()).collect(java.util.stream.Collectors.toSet());
-        boolean hasCategoryTargets = !categoryTargets.isEmpty();
-        if (hasHotelTargets || hasRoomTargets || hasCategoryTargets) {
-            boolean matchesTarget = offer.getTargetHotelIds().contains(hotelId)
-                    || offer.getTargetRoomTypeIds().contains(room.getId())
-                    || categoryTargets.contains(room.getRoomCategory());
-            if (!matchesTarget) return null;
-        }
-
-        // Applicable days check
-        if (offer.getApplicableDays() != null && !offer.getApplicableDays().isBlank()) {
-            Set<String> days = new HashSet<>(Arrays.asList(offer.getApplicableDays().toUpperCase().split(",")));
-            if (days.size() < 7) {
-                for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
-                    String dayName = switch (date.getDayOfWeek()) {
-                        case MONDAY -> "MON";
-                        case TUESDAY -> "TUE";
-                        case WEDNESDAY -> "WED";
-                        case THURSDAY -> "THU";
-                        case FRIDAY -> "FRI";
-                        case SATURDAY -> "SAT";
-                        case SUNDAY -> "SUN";
-                    };
-                    if (!days.contains(dayName)) {
-                        return null;
-                    }
-                }
-            }
-        }
-
-        // Calculate discount amount
         BigDecimal discount = BigDecimal.ZERO;
-        if ("PERCENTAGE".equalsIgnoreCase(offer.getDiscountType())) {
-            discount = subtotal.multiply(offer.getDiscountValue())
+        BigDecimal value = BigDecimal.valueOf(candidate.getDiscountValue());
+        if ("PERCENTAGE".equalsIgnoreCase(candidate.getDiscountType())) {
+            discount = subtotal.multiply(value)
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        } else if ("FIXED_AMOUNT".equalsIgnoreCase(offer.getDiscountType())) {
-            if ("PER_NIGHT".equalsIgnoreCase(offer.getFixedDiscountScope())) {
-                discount = offer.getDiscountValue().multiply(BigDecimal.valueOf(nights * quantity));
-            } else {
-                discount = offer.getDiscountValue();
-            }
+        } else if ("FIXED_AMOUNT".equalsIgnoreCase(candidate.getDiscountType())) {
+            discount = value;
         }
 
         if (discount.compareTo(subtotal) > 0)
@@ -453,21 +392,21 @@ public class CustomerReservationService {
         if (discount.compareTo(BigDecimal.ZERO) < 0)
             discount = BigDecimal.ZERO;
 
-        return new EvaluatedOffer(offer, discount.setScale(2, RoundingMode.HALF_UP));
+        return new EvaluatedDiscount(candidate, discount.setScale(2, RoundingMode.HALF_UP));
     }
 
-    private EvaluatedOffer findBestOffer(BigDecimal subtotal, long nights, int quantity,
+    private EvaluatedDiscount findBestDiscount(BigDecimal subtotal, long nights,
             Long hotelId, Room room, LocalDate checkIn, LocalDate checkOut,
             LocalDate bookingDate) {
-        List<Offer> activeOffers = offers.findByStatusOrderByDisplayOrderAscCreatedAtDesc("ACTIVE");
-        EvaluatedOffer best = null;
-        for (Offer offer : activeOffers) {
-            EvaluatedOffer evaluated = evaluateOffer(offer, subtotal, nights, quantity, hotelId, room, checkIn,
+        List<Discount> activeDiscounts = discounts.findByStatus("ACTIVE");
+        EvaluatedDiscount best = null;
+        for (Discount discount : activeDiscounts) {
+            EvaluatedDiscount evaluated = evaluateDiscount(discount, subtotal, nights, hotelId, room, checkIn,
                     checkOut, bookingDate);
             if (evaluated != null && evaluated.discountAmount().compareTo(BigDecimal.ZERO) > 0) {
                 if (best == null || evaluated.discountAmount().compareTo(best.discountAmount()) > 0
                         || (evaluated.discountAmount().compareTo(best.discountAmount()) == 0
-                                && evaluated.offer().getId() < best.offer().getId())) {
+                                && evaluated.discount().getId() < best.discount().getId())) {
                     best = evaluated;
                 }
             }
@@ -492,17 +431,13 @@ public class CustomerReservationService {
         items.findByReservationIdIn(found.stream().map(Reservation::getId).toList())
                 .forEach(item -> byReservation.computeIfAbsent(item.getReservationId(), ignored -> new ArrayList<>())
                         .add(ReservationItemResponse.from(item)));
-        return found.stream().map(r -> ReservationResponse.from(r, byReservation.getOrDefault(r.getId(), List.of()),
-                assignments.findByReservationIdOrderByIdAsc(r.getId()).stream()
-                        .map(ReservationPhysicalRoom::getPhysicalRoomId).toList()))
+        return found.stream().map(r -> ReservationResponse.from(r, byReservation.getOrDefault(r.getId(), List.of())))
                 .toList();
     }
 
     private ReservationResponse response(Reservation reservation) {
         return ReservationResponse.from(reservation,
-                items.findByReservationId(reservation.getId()).stream().map(ReservationItemResponse::from).toList(),
-                assignments.findByReservationIdOrderByIdAsc(reservation.getId()).stream()
-                        .map(ReservationPhysicalRoom::getPhysicalRoomId).toList());
+                items.findByReservationId(reservation.getId()).stream().map(ReservationItemResponse::from).toList());
     }
 
     private ApiException badRequest(String message) {

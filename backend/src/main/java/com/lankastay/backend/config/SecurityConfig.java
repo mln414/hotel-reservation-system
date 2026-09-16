@@ -61,7 +61,8 @@ public class SecurityConfig {
                 .csrf(config -> config.csrfTokenRepository(csrf))
                 .securityContext(config -> config.securityContextRepository(contextRepository))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf", "/api/destinations/**", "/api/public/hotels/**", "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf", "/api/destinations/**",
+                                "/api/public/hotels/**", "/api/public/reviews", "/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/dev-last-reset-link").permitAll()
                         .requestMatchers("/api/v1/customer/auth/**").permitAll()
