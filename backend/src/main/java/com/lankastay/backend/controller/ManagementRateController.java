@@ -1,11 +1,9 @@
 package com.lankastay.backend.controller;
 
 import com.lankastay.backend.entity.RoomRate;
-import com.lankastay.backend.security.StaffPrincipal;
 import com.lankastay.backend.service.ManagementRateService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,14 +21,12 @@ public class ManagementRateController {
     @GetMapping
     public List<RoomRate> getRates(
             @RequestParam(required = false) Long hotelId,
-            @RequestParam(required = false) Long roomId,
-            @AuthenticationPrincipal StaffPrincipal principal
+            @RequestParam(required = false) Long roomId
     ) {
         if (roomId != null) {
             return rateService.getRatesForRoom(roomId);
         }
-        Long targetHotelId = "MANAGER".equalsIgnoreCase(principal.role()) ? hotelId : principal.assignedHotelId();
-        return rateService.getRatesForHotel(targetHotelId);
+        return rateService.getRatesForHotel(hotelId);
     }
 
     @GetMapping("/{id}")
@@ -42,10 +38,7 @@ public class ManagementRateController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
-    public RoomRate createRate(@RequestBody RoomRate rate, @AuthenticationPrincipal StaffPrincipal principal) {
-        if (!"MANAGER".equalsIgnoreCase(principal.role()) && principal.assignedHotelId() != null) {
-            rate.setHotelId(principal.assignedHotelId());
-        }
+    public RoomRate createRate(@RequestBody RoomRate rate) {
         return rateService.createRate(rate);
     }
 

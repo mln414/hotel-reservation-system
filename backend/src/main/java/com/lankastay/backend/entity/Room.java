@@ -1,5 +1,6 @@
 package com.lankastay.backend.entity;
 
+<<<<<<< HEAD
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
@@ -8,13 +9,20 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+=======
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+>>>>>>> main
 
 @Entity
 @Table(name = "rooms")
 public class Room {
 
+<<<<<<< HEAD
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+=======
+>>>>>>> main
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +36,11 @@ public class Room {
     @Column(nullable = false, unique = true, length = 180)
     private String slug;
 
+<<<<<<< HEAD
     @Column(name = "room_category", length = 50)
+=======
+    @Column(name = "room_category", nullable = false, length = 40)
+>>>>>>> main
     private String roomCategory;
 
     @Column(columnDefinition = "TEXT")
@@ -52,8 +64,13 @@ public class Room {
     @Column(name = "inventory_count")
     private Integer inventoryCount = 0;
 
+<<<<<<< HEAD
     @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal basePrice = BigDecimal.ZERO;
+=======
+    @Column(name = "base_price", nullable = false)
+    private Double basePrice = 0.0;
+>>>>>>> main
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
@@ -70,8 +87,12 @@ public class Room {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+<<<<<<< HEAD
     public Room() {
     }
+=======
+    public Room() {}
+>>>>>>> main
 
     @PrePersist
     protected void onCreate() {
@@ -121,8 +142,13 @@ public class Room {
     public Integer getInventoryCount() { return inventoryCount; }
     public void setInventoryCount(Integer inventoryCount) { this.inventoryCount = inventoryCount; }
 
+<<<<<<< HEAD
     public BigDecimal getBasePrice() { return basePrice; }
     public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
+=======
+    public Double getBasePrice() { return basePrice; }
+    public void setBasePrice(Double basePrice) { this.basePrice = basePrice; }
+>>>>>>> main
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -135,6 +161,7 @@ public class Room {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+<<<<<<< HEAD
 
     /**
      * Convenience accessor: exposes the stored amenities_json column as a List of
@@ -163,4 +190,6 @@ public class Room {
             this.amenitiesJson = "[]";
         }
     }
+=======
+>>>>>>> main
 }
