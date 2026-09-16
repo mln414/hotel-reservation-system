@@ -13,7 +13,6 @@ import java.util.UUID;
 
 public record StaffPrincipal(
         UUID id, String username, String password, String role, StaffStatus status,
-<<<<<<< HEAD
         boolean mustChangePassword, Instant lockedUntil, Long assignedHotelId,
         String firstName, String lastName
 ) implements UserDetails {
@@ -21,13 +20,6 @@ public record StaffPrincipal(
         return new StaffPrincipal(user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole().name(),
                 user.getStatus(), user.isMustChangePassword(), user.getLockedUntil(),
                 user.getAssignedHotelId(), user.getFirstName(), user.getLastName());
-=======
-        boolean mustChangePassword, Instant lockedUntil, Long assignedHotelId
-) implements UserDetails {
-    public static StaffPrincipal from(StaffUser user) {
-        return new StaffPrincipal(user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole().name(),
-                user.getStatus(), user.isMustChangePassword(), user.getLockedUntil(), user.getAssignedHotelId());
->>>>>>> main
     }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
