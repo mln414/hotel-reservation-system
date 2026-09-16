@@ -62,6 +62,8 @@ public class Reservation {
     private AssignmentState assignmentState = AssignmentState.UNASSIGNED;
     @Column(name = "assigned_room_number", length = 50)
     private String assignedRoomNumber;
+    @Column(name = "assigned_physical_room_id")
+    private Long assignedPhysicalRoomId;
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequests;
     @Column(name = "estimated_arrival_time", length = 20)
@@ -74,6 +76,8 @@ public class Reservation {
     private String cancellationNote;
     @Column(name = "cancelled_by_type", length = 30)
     private String cancelledByType;
+    @Column(name = "review_submitted_at")
+    private LocalDateTime reviewSubmittedAt;
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @Column(name = "updated_at", nullable = false)
@@ -132,6 +136,8 @@ public class Reservation {
     public void setAssignmentState(AssignmentState value) { assignmentState = value; }
     public String getAssignedRoomNumber() { return assignedRoomNumber; }
     public void setAssignedRoomNumber(String value) { assignedRoomNumber = value; }
+    public Long getAssignedPhysicalRoomId() { return assignedPhysicalRoomId; }
+    public void setAssignedPhysicalRoomId(Long value) { assignedPhysicalRoomId = value; }
     public String getSpecialRequests() { return specialRequests; }
     public void setSpecialRequests(String value) { specialRequests = value; }
     public String getEstimatedArrivalTime() { return estimatedArrivalTime; }
@@ -144,6 +150,8 @@ public class Reservation {
     public void setCancellationNote(String value) { cancellationNote = value; }
     public String getCancelledByType() { return cancelledByType; }
     public void setCancelledByType(String value) { cancelledByType = value; }
+    public LocalDateTime getReviewSubmittedAt() { return reviewSubmittedAt; }
+    public void setReviewSubmittedAt(LocalDateTime value) { reviewSubmittedAt = value; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
