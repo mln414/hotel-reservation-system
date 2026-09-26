@@ -40,6 +40,7 @@ public record UpdateHotelRequest(
         String propertySize,
         String languages,
         String videoUrl,
+        List<HotelPolicyRecord> policyRecords,
         String lastUpdatedSection,
         List<String> facilities,
         List<String> gallery,

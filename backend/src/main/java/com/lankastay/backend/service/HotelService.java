@@ -6,15 +6,12 @@ package com.lankastay.backend.service;
 import com.lankastay.backend.dto.hotel.*;
 import com.lankastay.backend.entity.*;
 import com.lankastay.backend.exception.ResourceNotFoundException;
-import com.lankastay.backend.exception.ConflictException;
 import com.lankastay.backend.repository.DestinationRepository;
 import com.lankastay.backend.repository.HotelRepository;
-import com.lankastay.backend.repository.ReservationRepository;
-import com.lankastay.backend.repository.RoomRateRepository;
-import com.lankastay.backend.repository.RoomRepository;
 import com.lankastay.backend.repository.StaffUserRepository;
 import com.lankastay.backend.security.StaffPrincipal;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,22 +31,17 @@ public class HotelService {
     private final HotelRepository hotelRepository;
     private final DestinationRepository destinationRepository;
     private final StaffUserRepository staffUserRepository;
-    private final RoomRepository roomRepository;
-    private final RoomRateRepository roomRateRepository;
-    private final ReservationRepository reservationRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final SecurityAuditService auditService;
 
     public HotelService(HotelRepository hotelRepository, DestinationRepository destinationRepository,
-                        StaffUserRepository staffUserRepository, RoomRepository roomRepository,
-                        RoomRateRepository roomRateRepository, ReservationRepository reservationRepository,
-                        SecurityAuditService auditService) {
+                        StaffUserRepository staffUserRepository, SecurityAuditService auditService,
+                        JdbcTemplate jdbcTemplate) {
         this.hotelRepository = hotelRepository;
         this.destinationRepository = destinationRepository;
         this.staffUserRepository = staffUserRepository;
-        this.roomRepository = roomRepository;
-        this.roomRateRepository = roomRateRepository;
-        this.reservationRepository = reservationRepository;
         this.auditService = auditService;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -171,6 +163,7 @@ public class HotelService {
         if (request.propertySize() != null) hotel.setPropertySize(request.propertySize());
         if (request.languages() != null) hotel.setLanguages(request.languages());
         if (request.videoUrl() != null) hotel.setVideoUrl(request.videoUrl());
+        if (request.policyRecords() != null) hotel.setPoliciesJson(HotelPolicyJson.write(request.policyRecords()));
         if (request.facilities() != null) hotel.setFacilities(request.facilities());
         if (request.gallery() != null) hotel.setGallery(request.gallery());
         if (request.collectionIds() != null) hotel.setCollectionIds(request.collectionIds());
@@ -237,6 +230,7 @@ public class HotelService {
         if (request.propertySize() != null) hotel.setPropertySize(request.propertySize());
         if (request.languages() != null) hotel.setLanguages(request.languages());
         if (request.videoUrl() != null) hotel.setVideoUrl(request.videoUrl());
+        if (request.policyRecords() != null) hotel.setPoliciesJson(HotelPolicyJson.write(request.policyRecords()));
         if (request.lastUpdatedSection() != null) hotel.setLastUpdatedSection(request.lastUpdatedSection());
         if (request.facilities() != null) hotel.setFacilities(request.facilities());
         if (request.gallery() != null) hotel.setGallery(request.gallery());
@@ -295,22 +289,45 @@ public class HotelService {
     }
 
     @Transactional
-    public HotelDeleteResponse deleteHotel(Long id, StaffPrincipal principal, String ipAddress) {
+    public HotelDeleteResponse deleteHotel(Long id, String confirmationName, StaffPrincipal principal, String ipAddress) {
         // Security: authorization is checked against the authenticated staff member's permitted hotel scope to prevent IDOR access.
         verifyStaffHotelScope(principal, id);
 
         Hotel hotel = hotelRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id: " + id));
 
-        if (!reservationRepository.findByHotelId(id).isEmpty()) {
-            throw new ConflictException("This hotel has reservation history and cannot be permanently deleted. Deactivate it instead.");
-        }
-        if (!roomRepository.findByHotelId(id).isEmpty() || !roomRateRepository.findByHotelId(id).isEmpty()) {
-            throw new ConflictException("Remove the hotel's room types and rates before permanently deleting it, or deactivate it instead.");
+        if (confirmationName == null || !hotel.getName().equals(confirmationName)) {
+            throw new IllegalArgumentException("Type the exact Hotel name to confirm permanent deletion.");
         }
 
-        // Only Hotel-owned facilities, gallery and collection rows cascade. Operational records are protected above.
+        // Delete the complete Hotel aggregate in foreign-key-safe order. The surrounding
+        // transaction guarantees that a failure rolls every deletion back.
+        jdbcTemplate.update("DELETE FROM review_photos WHERE review_id IN (SELECT id FROM reviews WHERE hotel_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM reviews WHERE hotel_id = ?", id);
+        jdbcTemplate.update("DELETE FROM reservation_items WHERE reservation_id IN (SELECT id FROM reservations WHERE hotel_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM reservations WHERE hotel_id = ?", id);
+        // Empty offer targets mean unrestricted eligibility. Disable offers losing
+        // their last hotel or room target before removing those targeting links.
+        jdbcTemplate.update("""
+                UPDATE offers SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
+                WHERE id IN (SELECT offer_id FROM offer_hotels WHERE hotel_id = ?)
+                  AND id NOT IN (SELECT offer_id FROM offer_hotels WHERE hotel_id <> ?)
+                """, id, id);
+        jdbcTemplate.update("""
+                UPDATE offers SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
+                WHERE id IN (SELECT offer_id FROM offer_rooms WHERE room_id IN (SELECT id FROM rooms WHERE hotel_id = ?))
+                  AND id NOT IN (SELECT offer_id FROM offer_rooms WHERE room_id NOT IN (SELECT id FROM rooms WHERE hotel_id = ?))
+                """, id, id);
+        jdbcTemplate.update("DELETE FROM offer_rooms WHERE room_id IN (SELECT id FROM rooms WHERE hotel_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM offer_hotels WHERE hotel_id = ?", id);
+        jdbcTemplate.update("DELETE FROM room_gallery WHERE room_id IN (SELECT id FROM rooms WHERE hotel_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM room_rates WHERE hotel_id = ?", id);
+        jdbcTemplate.update("DELETE FROM rooms WHERE hotel_id = ?", id);
+        jdbcTemplate.update("UPDATE staff_users SET assigned_hotel_id = NULL WHERE assigned_hotel_id = ?", id);
+
+        // Hotel facilities, gallery and collections are removed with the entity.
         hotelRepository.delete(hotel);
+        hotelRepository.flush();
 
         auditService.record(principal.id(), null, SecurityEventType.HOTEL_DELETED, ipAddress, "SUCCESS");
 

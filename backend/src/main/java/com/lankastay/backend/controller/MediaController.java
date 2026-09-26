@@ -17,11 +17,8 @@ public class MediaController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<MediaUploadResponse> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folder", required = false, defaultValue = "images") String folder
-    ) {
-        MediaUploadResponse response = mediaStorageService.storeFile(file, folder);
+    public ResponseEntity<MediaUploadResponse> uploadFile(@RequestParam("file") MultipartFile file) {
+        MediaUploadResponse response = mediaStorageService.storeFile(file);
         return ResponseEntity.ok(response);
     }
 }
