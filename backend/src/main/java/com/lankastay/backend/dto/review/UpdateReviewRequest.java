@@ -3,10 +3,7 @@ package com.lankastay.backend.dto.review;
 import jakarta.validation.constraints.*;
 import java.util.List;
 
-public record CreateReviewRequest(
-        @NotNull(message = "Reservation ID is required")
-        Long reservationId,
-
+public record UpdateReviewRequest(
         @NotNull(message = "Overall rating is required")
         @Min(value = 1, message = "Rating must be between 1 and 5")
         @Max(value = 5, message = "Rating must be between 1 and 5")
