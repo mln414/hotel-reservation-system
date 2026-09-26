@@ -1,11 +1,11 @@
 package com.lankastay.backend.controller;
 
-import com.lankastay.backend.dto.rate.CreateRateRequest;
-import com.lankastay.backend.dto.rate.RateResponse;
-import com.lankastay.backend.dto.rate.RateStatusRequest;
-import com.lankastay.backend.dto.rate.UpdateRateRequest;
+import com.lankastay.backend.dto.offer.CreateOfferRequest;
+import com.lankastay.backend.dto.offer.OfferResponse;
+import com.lankastay.backend.dto.offer.OfferStatusRequest;
+import com.lankastay.backend.dto.offer.UpdateOfferRequest;
 import com.lankastay.backend.security.StaffPrincipal;
-import com.lankastay.backend.service.ManagementRateService;
+import com.lankastay.backend.service.ManagementOfferService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,76 +16,73 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/management/rates")
+@RequestMapping("/api/v1/management/offers")
 @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF', 'RECEPTIONIST')")
-public class ManagementRateController {
-    private final ManagementRateService rateService;
+public class ManagementOfferController {
 
-    public ManagementRateController(ManagementRateService rateService) {
-        this.rateService = rateService;
+    private final ManagementOfferService offerService;
+
+    public ManagementOfferController(ManagementOfferService offerService) {
+        this.offerService = offerService;
     }
 
     @GetMapping
-    public List<RateResponse> getRates(
+    public List<OfferResponse> getOffers(
             @RequestParam(required = false) Long hotelId,
-            @RequestParam(required = false) Long roomId,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        if (roomId != null) {
-            return rateService.getRatesForRoom(principal, roomId);
-        }
-        return rateService.getRatesForHotel(principal, hotelId);
+        return offerService.getOffers(principal, hotelId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RateResponse> getRateById(
+    public ResponseEntity<OfferResponse> getOfferById(
             @PathVariable Long id,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        return rateService.getRateById(principal, id)
+        return offerService.getOfferById(principal, id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<RateResponse> createRate(
-            @Valid @RequestBody CreateRateRequest request,
+    public ResponseEntity<OfferResponse> createOffer(
+            @Valid @RequestBody CreateOfferRequest request,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        RateResponse created = rateService.createRate(principal, request);
+        OfferResponse created = offerService.createOffer(principal, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
-    public ResponseEntity<RateResponse> updateRate(
+    public ResponseEntity<OfferResponse> updateOffer(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateRateRequest request,
+            @Valid @RequestBody UpdateOfferRequest request,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        RateResponse updated = rateService.updateRate(principal, id, request);
+        OfferResponse updated = offerService.updateOffer(principal, id, request);
         return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<RateResponse> updateStatus(
+    public ResponseEntity<OfferResponse> updateStatus(
             @PathVariable Long id,
-            @Valid @RequestBody RateStatusRequest request,
+            @Valid @RequestBody OfferStatusRequest request,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        RateResponse updated = rateService.updateStatus(principal, id, request);
+        OfferResponse updated = offerService.updateStatus(principal, id, request);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<Void> deleteRate(
+    public ResponseEntity<Void> deleteOffer(
             @PathVariable Long id,
             @AuthenticationPrincipal StaffPrincipal principal
     ) {
-        rateService.deleteRate(principal, id);
+        offerService.deleteOffer(principal, id);
         return ResponseEntity.noContent().build();
     }
 }
