@@ -1,67 +1,68 @@
 package com.lankastay.backend;
 
-import com.lankastay.backend.dto.media.MediaUploadResponse;
-import com.lankastay.backend.exception.BusinessRuleException;
 import com.lankastay.backend.service.MediaStorageService;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.lankastay.backend.exception.BusinessRuleException;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
-
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-public class MediaStorageServiceTest {
+class MediaStorageServiceTest {
+    @TempDir Path directory;
+    MediaStorageService storage;
+    @BeforeEach void setup() { storage = new MediaStorageService(directory.toString()); }
 
-    @Autowired
-    private MediaStorageService mediaStorageService;
-
-    @Test
-    @DisplayName("1. Successful image upload returns stable public URL")
-    void testSuccessfulImageUpload() {
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test-cover.png",
-                "image/png",
-                "dummy image content bytes".getBytes()
-        );
-
-        MediaUploadResponse response = mediaStorageService.storeFile(file);
-
-        assertNotNull(response);
-        assertNotNull(response.getUrl());
-        assertTrue(response.getUrl().startsWith("/uploads/destinations/dest_"));
-        assertTrue(response.getUrl().endsWith(".png"));
+    private byte[] image(String format) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), format, out);
+        return out.toByteArray();
     }
-
-    @Test
-    @DisplayName("2. Unsupported MIME type rejected")
-    void testUnsupportedMimeTypeRejected() {
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "malicious.exe",
-                "application/x-msdownload",
-                "binary content".getBytes()
-        );
-
-        assertThrows(BusinessRuleException.class, () -> {
-            mediaStorageService.storeFile(file);
-        });
+    @ParameterizedTest @ValueSource(strings={"png", "jpg", "jpeg"})
+    void acceptsVerifiedRasterAndIgnoresClientMime(String extension) throws Exception {
+        byte[] data = image(extension.equals("jpeg") ? "jpg" : extension);
+        var result = storage.storeFile(new MockMultipartFile("file", "cover." + extension, "text/html", data));
+        assertTrue(result.getFilename().startsWith("dest_"));
+        assertFalse(result.getFilename().contains("cover"));
+        assertNotNull(ImageIO.read(directory.resolve("destinations").resolve(result.getFilename()).toFile()));
     }
-
-    @Test
-    @DisplayName("3. Path traversal filename attempt rejected")
-    void testPathTraversalRejected() {
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "../../secret.png",
-                "image/png",
-                "content".getBytes()
-        );
-
-        assertThrows(BusinessRuleException.class, () -> {
-            mediaStorageService.storeFile(file);
-        });
+    @ParameterizedTest @ValueSource(strings={"payload.html", "payload.svg", "payload.jsp", "payload.php",
+            "payload.js", "payload.exe.png", "../cover.png", "folder/cover.png", "..\\cover.png", "cover..png", "cover"})
+    void rejectsDangerousOrAmbiguousNames(String name) throws Exception {
+        assertThrows(BusinessRuleException.class, () -> storage.storeFile(new MockMultipartFile("file", name, "image/png", image("png"))));
+    }
+    @ParameterizedTest @ValueSource(strings={"<html><script>alert(1)</script></html>", "<svg xmlns='http://www.w3.org/2000/svg'/>", "random bytes"})
+    void rejectsSpoofedRasterContent(String payload) {
+        assertThrows(BusinessRuleException.class, () -> storage.storeFile(new MockMultipartFile("file", "cover.png", "image/png", payload.getBytes())));
+    }
+    @Test void rejectsOversize() {
+        assertThrows(BusinessRuleException.class, () -> storage.storeFile(new MockMultipartFile("file", "cover.png", "image/png", new byte[5*1024*1024+1])));
+    }
+    @Test void rejectsDimensionBombBeforePixelDecode() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(8193, 1, BufferedImage.TYPE_INT_RGB), "png", out);
+        assertThrows(BusinessRuleException.class, () -> storage.storeFile(new MockMultipartFile("file", "cover.png", "image/png", out.toByteArray())));
+    }
+    @Test void discardsTrailingScriptPayload() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(image("png")); out.write("<script>alert(1)</script>".getBytes());
+        var result = storage.storeFile(new MockMultipartFile("file", "cover.png", "image/png", out.toByteArray()));
+        byte[] stored = Files.readAllBytes(directory.resolve("destinations").resolve(result.getFilename()));
+        assertFalse(new String(stored, java.nio.charset.StandardCharsets.ISO_8859_1).contains("<script>"));
+    }
+    @Test void extensionMustMatchDecodedFormat() throws Exception {
+        assertThrows(BusinessRuleException.class, () -> storage.storeFile(new MockMultipartFile("file", "cover.jpg", "image/jpeg", image("png"))));
+    }
+    @Test void validWebpAcceptedAndSanitizedAsPng() throws Exception {
+        // Minimal lossless WebP fixture: one white pixel, decoded by TwelveMonkeys.
+        byte[] bytes = java.util.Base64.getDecoder().decode("UklGRiIAAABXRUJQVlA4TBUAAAAvAAAAAAfQ//73v/+BiOh/AAA=");
+        var result = storage.storeFile(new MockMultipartFile("file", "cover.webp", "image/webp", bytes));
+        assertTrue(result.getFilename().endsWith(".png"));
+        assertEquals("image/png", result.getMimeType());
     }
 }

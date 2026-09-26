@@ -23,10 +23,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = { "lankastay.security.max-failed-attempts=3", "lankastay.security.ip-max-attempts=1000" })
+@TestPropertySource(properties = { "lankastay.security.max-failed-attempts=5", "lankastay.security.ip-max-attempts=1000" })
 class AuthenticationIntegrationTest {
-    private static final String PASSWORD = "Correct horse battery staple";
-    private static final String NEW_PASSWORD = "A much better permanent password";
+    private static final String PASSWORD = "Correct1!HorseBatteryStaple";
+    private static final String NEW_PASSWORD = "Better2@PermanentPassword";
 
     @Autowired MockMvc mvc;
     @Autowired StaffUserRepository users;
@@ -47,7 +47,7 @@ class AuthenticationIntegrationTest {
     @Test void validManagerAndStaffLogin() throws Exception {
         create("manager@lankastay.lk", StaffRole.MANAGER, StaffStatus.ACTIVE, false);
         create("staff@lankastay.lk", StaffRole.HOTEL_STAFF, StaffStatus.ACTIVE, false);
-        login("manager@lankastay.lk", PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("AUTHENTICATED"));
+        login("  MANAGER@LANKASTAY.LK  ", PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("AUTHENTICATED"));
         login("staff@lankastay.lk", PASSWORD).andExpect(status().isOk()).andExpect(jsonPath("$.user.role").value("HOTEL_STAFF"));
     }
 
@@ -66,14 +66,22 @@ class AuthenticationIntegrationTest {
         login("locked@lankastay.lk", PASSWORD).andExpect(status().isUnauthorized());
     }
 
-        @Test void temporaryUserCanCompleteInitialPasswordChange() throws Exception {
+    @Test void temporaryUserIsRestrictedUntilInitialPasswordChange() throws Exception {
         create("temporary@lankastay.lk", StaffRole.HOTEL_STAFF, StaffStatus.ACTIVE, true);
         MvcResult login = login("temporary@lankastay.lk", PASSWORD)
                 .andExpect(jsonPath("$.status").value("PASSWORD_CHANGE_REQUIRED")).andReturn();
+        mvc.perform(get("/api/management/destinations").session(session(login)))
+                .andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/auth/change-initial-password").session(session(login)).with(csrf())
                         .contentType("application/json")
-                        .content("{\"newPassword\":\"" + NEW_PASSWORD + "\",\"confirmNewPassword\":\"" + NEW_PASSWORD + "\"}"))
+                        .content("{\"currentPassword\":\"Wrong1!Current\",\"newPassword\":\"" + NEW_PASSWORD + "\",\"confirmNewPassword\":\"" + NEW_PASSWORD + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Current password is incorrect."));
+        mvc.perform(post("/api/v1/auth/change-initial-password").session(session(login)).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"" + NEW_PASSWORD + "\",\"confirmNewPassword\":\"" + NEW_PASSWORD + "\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.mustChangePassword").value(false));
+        mvc.perform(get("/api/management/destinations").session(session(login))).andExpect(status().isOk());
         mvc.perform(post("/api/v1/auth/logout").session(session(login)).with(csrf())).andExpect(status().isNoContent());
         login("temporary@lankastay.lk", PASSWORD).andExpect(status().isUnauthorized());
         login("temporary@lankastay.lk", NEW_PASSWORD).andExpect(status().isOk());
@@ -109,11 +117,29 @@ class AuthenticationIntegrationTest {
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.temporaryPassword").isString())
                 .andExpect(jsonPath("$.staff.passwordHash").doesNotExist()).andReturn();
         String body = created.getResponse().getContentAsString();
+        String temporaryPassword = body.replaceAll(".*\\\"temporaryPassword\\\":\\\"([^\\\"]+)\\\".*", "$1");
         StaffUser saved = users.findByEmail("new.staff@lankastay.lk").orElseThrow();
         assertThat(body).doesNotContain(saved.getPasswordHash());
-        assertThat(saved.getPasswordHash()).doesNotContain("temporaryPassword");
+        assertThat(encoder.matches(temporaryPassword, saved.getPasswordHash())).isTrue();
+        assertThat(saved.isMustChangePassword()).isTrue();
+        assertThat(saved.getRole()).isEqualTo(StaffRole.HOTEL_STAFF);
         mvc.perform(get("/api/v1/admin/staff/" + saved.getId()).session(session(login)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.temporaryPassword").doesNotExist()).andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        MvcResult staffLogin = login(saved.getEmail(), temporaryPassword)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PASSWORD_CHANGE_REQUIRED"))
+                .andReturn();
+        mvc.perform(get("/api/management/destinations").session(session(staffLogin)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/auth/change-initial-password").session(session(staffLogin)).with(csrf())
+                        .contentType("application/json")
+                        .content("{\"currentPassword\":\"" + temporaryPassword + "\",\"newPassword\":\"" + NEW_PASSWORD + "\",\"confirmNewPassword\":\"" + NEW_PASSWORD + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(false));
+        login(saved.getEmail(), temporaryPassword).andExpect(status().isUnauthorized());
+        login(saved.getEmail(), NEW_PASSWORD).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AUTHENTICATED"));
     }
 
     @Test void clientCannotProvisionOrPromoteManager() throws Exception {
@@ -125,6 +151,18 @@ class AuthenticationIntegrationTest {
         mvc.perform(patch("/api/v1/admin/staff/" + staff.getId()).session(session(login)).with(csrf()).contentType("application/json")
                         .content("{\"role\":\"MANAGER\",\"assignedHotelId\":null}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test void staffEmailIsNormalizedAndDuplicateIsRejected() throws Exception {
+        create("manager@lankastay.lk", StaffRole.MANAGER, StaffStatus.ACTIVE, false);
+        MvcResult login = login("manager@lankastay.lk", PASSWORD).andReturn();
+        String first = createStaffJson("HOTEL_STAFF").replace("new.staff@lankastay.lk", "  NEW.STAFF@LANKASTAY.LK  ");
+        mvc.perform(post("/api/v1/admin/staff").session(session(login)).with(csrf()).contentType("application/json").content(first))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.staff.email").value("new.staff@lankastay.lk"));
+        mvc.perform(post("/api/v1/admin/staff").session(session(login)).with(csrf()).contentType("application/json").content(createStaffJson("HOTEL_STAFF")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("An account already exists with this email."));
     }
 
     @Test void logoutInvalidatesSessionAndProtectedEndpointRejectsAnonymous() throws Exception {
@@ -146,7 +184,7 @@ class AuthenticationIntegrationTest {
 
     @Test void repeatedFailuresCauseTemporaryAccountLockoutAndAudit() throws Exception {
         StaffUser user = create("lockout@lankastay.lk", StaffRole.HOTEL_STAFF, StaffStatus.ACTIVE, false);
-        for (int i = 0; i < 3; i++) login(user.getEmail(), "wrong password value").andExpect(status().isUnauthorized());
+        for (int i = 0; i < 5; i++) login(user.getEmail(), "wrong password value").andExpect(status().isUnauthorized());
         StaffUser locked = users.findById(user.getId()).orElseThrow();
         assertThat(locked.getLockedUntil()).isAfter(java.time.Instant.now());
         login(user.getEmail(), PASSWORD).andExpect(status().isUnauthorized());
@@ -214,6 +252,6 @@ class AuthenticationIntegrationTest {
     }
 
     private String createStaffJson(String role) {
-        return "{\"firstName\":\"New\",\"lastName\":\"Staff\",\"email\":\"new.staff@lankastay.lk\",\"role\":\"" + role + "\",\"assignedHotelId\":301}";
+        return "{\"firstName\":\"New\",\"lastName\":\"Staff\",\"email\":\"new.staff@lankastay.lk\",\"jobTitle\":\"Hotel Staff\",\"role\":\"" + role + "\",\"assignedHotelId\":301}";
     }
 }
