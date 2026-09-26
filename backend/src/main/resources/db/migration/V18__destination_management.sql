@@ -1,4 +1,4 @@
-CREATE TABLE destinations (
+CREATE TABLE IF NOT EXISTS destinations (
     id BIGINT NOT NULL AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     slug VARCHAR(120) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE destinations (
     INDEX idx_destinations_district (district)
 );
 
-CREATE TABLE attractions (
+CREATE TABLE IF NOT EXISTS attractions (
     id BIGINT NOT NULL AUTO_INCREMENT,
     destination_id BIGINT NOT NULL,
     name VARCHAR(150) NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE attractions (
         ON DELETE CASCADE
 );
 
-CREATE TABLE destinations_theme_keys (
+CREATE TABLE IF NOT EXISTS destinations_theme_keys (
     destination_id BIGINT NOT NULL,
     theme_key VARCHAR(50) NOT NULL,
 
@@ -67,7 +67,7 @@ CREATE TABLE destinations_theme_keys (
         ON DELETE CASCADE
 );
 
-CREATE TABLE destinations_highlights (
+CREATE TABLE IF NOT EXISTS destinations_highlights (
     destination_id BIGINT NOT NULL,
     highlight VARCHAR(255) NOT NULL,
 

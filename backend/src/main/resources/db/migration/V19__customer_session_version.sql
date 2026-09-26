@@ -1,0 +1,1 @@
+ALTER TABLE customer_users ADD COLUMN session_version BIGINT NOT NULL DEFAULT 0;
