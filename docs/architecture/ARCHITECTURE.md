@@ -19,7 +19,7 @@ LankaStay Hotels & Resorts is an enterprise multi-property hospitality and reser
                                          v
 +-----------------------------------------------------------------------------------+
 |                           SPRING BOOT BACKEND (Port 8080)                         |
-|  Java 17+ / Spring Boot 4.1.0 / Spring Security 6+                                |
+|  Java 25+ / Spring Boot 4.1.0 / Spring Security 6+                                |
 |                                                                                   |
 |  [Security Filter Pipeline]                                                       |
 |  - CsrfFilter (CookieCsrfTokenRepository, Double-Submit Cookie)                   |

@@ -8,7 +8,7 @@ This guide explains how to run the full LankaStay stack (Spring Boot backend + R
 
 | Tool | Version | Download |
 |------|---------|----------|
-| **Java (JDK)** | 17 or later | https://adoptium.net |
+| **Java (JDK)** | 25 or later | https://adoptium.net |
 | **MySQL** | 8.0 or later | https://dev.mysql.com/downloads/mysql/ |
 | **Node.js** | 18 or later | https://nodejs.org |
 | **npm** | Comes with Node.js | — |

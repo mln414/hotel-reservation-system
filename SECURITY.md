@@ -4,7 +4,7 @@
 
 | Project Component | Version / Environment | Supported |
 |---|---|---|
-| Spring Boot Backend | 4.1.0 / Java 17+ | :white_check_mark: |
+| Spring Boot Backend | 4.1.0 / Java 25+ | :white_check_mark: |
 | React Frontend | 19.2.8 / Vite 8 | :white_check_mark: |
 | MySQL Database | 8.0+ (Flyway Migrations V1–V19) | :white_check_mark: |
 

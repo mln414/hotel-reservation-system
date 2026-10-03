@@ -1,7 +1,7 @@
 # LankaStay Hotels & Resorts – Multi-Property Hotel Reservation System
 [![Backend CI](https://github.com/mln414/hotel-reservation-system/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/mln414/hotel-reservation-system/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/mln414/hotel-reservation-system/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/mln414/hotel-reservation-system/actions/workflows/frontend-ci.yml)
-[![Java 17+](https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
+[![Java 25+](https://img.shields.io/badge/Java-25%2B-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
 [![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![MySQL 8.0](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://dev.mysql.com)
@@ -98,7 +98,7 @@ graph TD
 ## 6. Technology Stack
 
 ### Backend Tier
-- **Language & Runtime:** Java 17+ (LTS)
+- **Language & Runtime:** Java 25+ (LTS)
 - **Framework:** Spring Boot 4.1.0 with Spring MVC & Spring Security
 - **Data Persistence:** Spring Data JPA, Hibernate ORM, Spring `JdbcTemplate`
 - **Database Engine:** MySQL 8.0+
