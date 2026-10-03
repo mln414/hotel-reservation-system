@@ -27,7 +27,7 @@ public class ManagementHotelController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
     public List<HotelResponse> listHotels(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long destinationId,
@@ -40,7 +40,7 @@ public class ManagementHotelController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'HOTEL_STAFF')")
     public HotelResponse getHotel(
             @PathVariable Long id,
             @AuthenticationPrincipal StaffPrincipal principal
@@ -85,10 +85,11 @@ public class ManagementHotelController {
     @PreAuthorize("hasRole('MANAGER')")
     public HotelDeleteResponse deleteHotel(
             @PathVariable Long id,
+            @RequestParam String confirmationName,
             @AuthenticationPrincipal StaffPrincipal principal,
             HttpServletRequest servletRequest
     ) {
-        return hotelService.deleteHotel(id, principal, clientIp(servletRequest));
+        return hotelService.deleteHotel(id, confirmationName, principal, clientIp(servletRequest));
     }
 
     private String clientIp(HttpServletRequest request) {

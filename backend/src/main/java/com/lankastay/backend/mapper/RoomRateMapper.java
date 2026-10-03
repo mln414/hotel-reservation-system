@@ -6,6 +6,7 @@ import com.lankastay.backend.dto.rate.RoomRateUpdateRequest;
 import com.lankastay.backend.entity.RoomRate;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,12 +20,12 @@ public class RoomRateMapper {
         rate.setRoomId(dto.getRoomId());
         rate.setRatePlanName(dto.getRatePlanName());
         rate.setRatePlanCode(dto.getRatePlanCode());
-        rate.setBaseNightlyRate(dto.getBaseNightlyRate());
-        rate.setWeekendNightlyRate(dto.getWeekendNightlyRate());
+        rate.setBaseNightlyRate(toBigDecimal(dto.getBaseNightlyRate()));
+        rate.setWeekendNightlyRate(toBigDecimal(dto.getWeekendNightlyRate()));
         if (dto.getMealPlan() != null) rate.setMealPlan(dto.getMealPlan());
         if (dto.getCancellationPolicy() != null) rate.setCancellationPolicy(dto.getCancellationPolicy());
         if (dto.getDepositRequired() != null) rate.setDepositRequired(dto.getDepositRequired());
-        if (dto.getDepositPercentage() != null) rate.setDepositPercentage(dto.getDepositPercentage());
+        if (dto.getDepositPercentage() != null) rate.setDepositPercentage(toBigDecimal(dto.getDepositPercentage()));
         if (dto.getStatus() != null) rate.setStatus(dto.getStatus());
         return rate;
     }
@@ -33,12 +34,12 @@ public class RoomRateMapper {
         if (dto == null || rate == null) return;
         if (dto.getRatePlanName() != null) rate.setRatePlanName(dto.getRatePlanName());
         if (dto.getRatePlanCode() != null) rate.setRatePlanCode(dto.getRatePlanCode());
-        if (dto.getBaseNightlyRate() != null) rate.setBaseNightlyRate(dto.getBaseNightlyRate());
-        if (dto.getWeekendNightlyRate() != null) rate.setWeekendNightlyRate(dto.getWeekendNightlyRate());
+        if (dto.getBaseNightlyRate() != null) rate.setBaseNightlyRate(toBigDecimal(dto.getBaseNightlyRate()));
+        if (dto.getWeekendNightlyRate() != null) rate.setWeekendNightlyRate(toBigDecimal(dto.getWeekendNightlyRate()));
         if (dto.getMealPlan() != null) rate.setMealPlan(dto.getMealPlan());
         if (dto.getCancellationPolicy() != null) rate.setCancellationPolicy(dto.getCancellationPolicy());
         if (dto.getDepositRequired() != null) rate.setDepositRequired(dto.getDepositRequired());
-        if (dto.getDepositPercentage() != null) rate.setDepositPercentage(dto.getDepositPercentage());
+        if (dto.getDepositPercentage() != null) rate.setDepositPercentage(toBigDecimal(dto.getDepositPercentage()));
         if (dto.getStatus() != null) rate.setStatus(dto.getStatus());
     }
 
@@ -50,12 +51,12 @@ public class RoomRateMapper {
         dto.setRoomId(entity.getRoomId());
         dto.setRatePlanName(entity.getRatePlanName());
         dto.setRatePlanCode(entity.getRatePlanCode());
-        dto.setBaseNightlyRate(entity.getBaseNightlyRate());
-        dto.setWeekendNightlyRate(entity.getWeekendNightlyRate());
+        dto.setBaseNightlyRate(toDouble(entity.getBaseNightlyRate()));
+        dto.setWeekendNightlyRate(toDouble(entity.getWeekendNightlyRate()));
         dto.setMealPlan(entity.getMealPlan());
         dto.setCancellationPolicy(entity.getCancellationPolicy());
         dto.setDepositRequired(entity.getDepositRequired());
-        dto.setDepositPercentage(entity.getDepositPercentage());
+        dto.setDepositPercentage(toDouble(entity.getDepositPercentage()));
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
@@ -65,5 +66,13 @@ public class RoomRateMapper {
     public List<RoomRateResponse> toResponseList(List<RoomRate> entities) {
         if (entities == null) return List.of();
         return entities.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    private BigDecimal toBigDecimal(Double value) {
+        return value == null ? null : BigDecimal.valueOf(value);
+    }
+
+    private Double toDouble(BigDecimal value) {
+        return value == null ? null : value.doubleValue();
     }
 }

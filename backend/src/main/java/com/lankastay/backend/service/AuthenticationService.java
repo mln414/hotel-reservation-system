@@ -58,6 +58,10 @@ public class AuthenticationService {
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", "Too many login attempts. Please try again later.");
         }
         String email = StaffUser.normalizeEmail(request.email());
+        if (!StaffUser.isValidEmail(email)) {
+            audit.record(null, null, SecurityEventType.LOGIN_FAILURE, ip, "INVALID_CREDENTIALS");
+            throw invalidCredentials();
+        }
         StaffUser user = users.findByEmail(email).orElse(null);
         if (user != null && user.getLockedUntil() != null && !user.getLockedUntil().isAfter(Instant.now())) {
             user.setLockedUntil(null);
@@ -100,7 +104,7 @@ public class AuthenticationService {
     }
 
     private ApiException invalidCredentials() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Invalid email or password");
+        return new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized", "Invalid email or password.");
     }
 
     @Transactional
@@ -108,6 +112,9 @@ public class AuthenticationService {
         StaffUser user = requireActive(userId);
         if (!user.isMustChangePassword()) {
             throw new ApiException(HttpStatus.CONFLICT, "Conflict", "Initial password change is not required.");
+        }
+        if (!encoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Current password is incorrect.");
         }
         validateNewPassword(request.newPassword(), request.confirmNewPassword(), user);
         user.setPasswordHash(encoder.encode(request.newPassword()));
@@ -151,4 +158,5 @@ public class AuthenticationService {
         }
         return user;
     }
+
 }

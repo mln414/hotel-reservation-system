@@ -42,13 +42,6 @@ public class StaffAdministrationController {
         return service.updateStatus(id, request, actor.id(), servletRequest.getRemoteAddr());
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id,
-            @AuthenticationPrincipal StaffPrincipal actor, HttpServletRequest servletRequest) {
-        service.delete(id, actor.id(), servletRequest.getRemoteAddr());
-    }
-
     @PostMapping("/{id}/reset-password")
     public ResetStaffPasswordResponse reset(@PathVariable UUID id,
             @AuthenticationPrincipal StaffPrincipal actor, HttpServletRequest servletRequest) {
