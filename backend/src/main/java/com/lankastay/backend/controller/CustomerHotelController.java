@@ -5,6 +5,10 @@ package com.lankastay.backend.controller;
 
 import com.lankastay.backend.dto.hotel.HotelResponse;
 import com.lankastay.backend.service.HotelService;
+import com.lankastay.backend.entity.Room;
+import com.lankastay.backend.entity.RoomRate;
+import com.lankastay.backend.repository.RoomRepository;
+import com.lankastay.backend.repository.RoomRateRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +19,13 @@ import java.util.List;
 public class CustomerHotelController {
 
     private final HotelService hotelService;
+    private final RoomRepository roomRepository;
+    private final RoomRateRepository roomRateRepository;
 
-    public CustomerHotelController(HotelService hotelService) {
+    public CustomerHotelController(HotelService hotelService, RoomRepository roomRepository, RoomRateRepository roomRateRepository) {
         this.hotelService = hotelService;
+        this.roomRepository = roomRepository;
+        this.roomRateRepository = roomRateRepository;
     }
 
     /**
@@ -48,5 +56,17 @@ public class CustomerHotelController {
     public ResponseEntity<List<HotelResponse>> getHotelsByDestination(@PathVariable Long destinationId) {
         List<HotelResponse> list = hotelService.getActiveHotelsByDestination(destinationId);
         return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/{hotelId}/rooms")
+    public List<Room> getActiveRooms(@PathVariable Long hotelId) {
+        hotelService.getActiveHotelBySlugOrId(String.valueOf(hotelId));
+        return roomRepository.findByHotelIdAndStatus(hotelId, "ACTIVE");
+    }
+
+    @GetMapping("/{hotelId}/rooms/{roomId}/rates")
+    public List<RoomRate> getActiveRates(@PathVariable Long hotelId, @PathVariable Long roomId) {
+        hotelService.getActiveHotelBySlugOrId(String.valueOf(hotelId));
+        return roomRateRepository.findByHotelIdAndRoomIdAndStatus(hotelId, roomId, "ACTIVE");
     }
 }

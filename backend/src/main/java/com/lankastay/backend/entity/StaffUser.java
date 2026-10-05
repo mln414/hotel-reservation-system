@@ -54,6 +54,18 @@ public class StaffUser {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "job_title", length = 100)
+    private String jobTitle;
+
+    @Column(length = 100)
+    private String department;
+
+    @Column(length = 30)
+    private String phone;
+
+    @Column(name = "permissions_json", columnDefinition = "TEXT")
+    private String permissionsJson;
+
     @Column(name = "created_by")
     private UUID createdBy;
 
@@ -81,6 +93,11 @@ public class StaffUser {
         return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
     }
 
+    public static boolean isValidEmail(String value) {
+        return value != null && value.length() <= 254
+                && value.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    }
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public String getEmail() { return email; }
@@ -105,6 +122,15 @@ public class StaffUser {
     public void setLockedUntil(Instant lockedUntil) { this.lockedUntil = lockedUntil; }
     public Instant getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(Instant lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+    public String getJobTitle() { return jobTitle; }
+    public void setJobTitle(String jobTitle) { this.jobTitle = jobTitle; }
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getPermissionsJson() { return permissionsJson; }
+    public void setPermissionsJson(String permissionsJson) { this.permissionsJson = permissionsJson; }
+
     public UUID getCreatedBy() { return createdBy; }
     public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }

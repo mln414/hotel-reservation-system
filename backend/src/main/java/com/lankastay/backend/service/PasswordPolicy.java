@@ -6,12 +6,24 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PasswordPolicy {
+    public static final int MIN_LENGTH = 8;
+    public static final int MAX_LENGTH = 128;
+
     public void validate(String password) {
-        if (password == null || password.length() < 12 || password.length() > 128) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must be between 12 and 128 characters.");
+        if (password == null || password.length() < MIN_LENGTH || password.length() > MAX_LENGTH) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must be between 8 and 128 characters.");
         }
-        if (password.chars().allMatch(Character::isWhitespace)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password cannot contain only whitespace.");
+        if (!password.matches(".*[A-Z].*")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must contain an uppercase letter.");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must contain a lowercase letter.");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must contain a number.");
+        }
+        if (!password.matches(".*[^A-Za-z0-9\\s].*")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Password must contain a special character.");
         }
     }
 }

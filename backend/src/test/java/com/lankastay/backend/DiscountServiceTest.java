@@ -25,6 +25,9 @@ public class DiscountServiceTest {
     @Mock
     private DiscountRepository discountRepository;
 
+    @Mock private com.lankastay.backend.repository.HotelRepository hotels;
+    @Mock private com.lankastay.backend.repository.StaffUserRepository staff;
+
     @InjectMocks
     private DiscountService discountService;
 
@@ -86,11 +89,14 @@ public class DiscountServiceTest {
     void testCreateDiscount() {
         when(discountRepository.save(any(Discount.class))).thenReturn(sampleDiscount);
 
-        Discount created = discountService.createDiscount(sampleDiscount);
+        when(hotels.existsById(301L)).thenReturn(true);
+        Discount created = discountService.createDiscount(new com.lankastay.backend.dto.discount.CreateDiscountRequest(
+                301L, "SUMMER20", "Summer Getaway 20%", "20% off for 2+ nights", "PERCENTAGE", 20.0, 2,
+                sampleDiscount.getValidFrom(), sampleDiscount.getValidTo(), "ACTIVE"), manager());
 
         assertNotNull(created);
         assertEquals("SUMMER20", created.getCode());
-        verify(discountRepository, times(1)).save(sampleDiscount);
+        verify(discountRepository, times(1)).save(any(Discount.class));
     }
 
     @Test
@@ -98,8 +104,15 @@ public class DiscountServiceTest {
     void testDeleteDiscount() {
         doNothing().when(discountRepository).deleteById(1L);
 
-        discountService.deleteDiscount(1L);
+        when(discountRepository.findById(1L)).thenReturn(Optional.of(sampleDiscount));
+        when(hotels.existsById(301L)).thenReturn(true);
+        discountService.deleteDiscount(1L, manager());
 
         verify(discountRepository, times(1)).deleteById(1L);
+    }
+
+    private com.lankastay.backend.security.StaffPrincipal manager() {
+        return new com.lankastay.backend.security.StaffPrincipal(java.util.UUID.randomUUID(), "manager@test.local", "",
+                "MANAGER", com.lankastay.backend.entity.StaffStatus.ACTIVE, false, null, null, "M", "User");
     }
 }

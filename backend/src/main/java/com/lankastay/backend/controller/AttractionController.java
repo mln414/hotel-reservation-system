@@ -37,6 +37,7 @@ public class AttractionController {
     }
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<AttractionResponse> createAttraction(
             @PathVariable Long destinationId,
             @Valid @RequestBody AttractionCreateRequest request
@@ -46,6 +47,7 @@ public class AttractionController {
     }
 
     @PutMapping("/{attractionId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<AttractionResponse> updateAttraction(
             @PathVariable Long destinationId,
             @PathVariable Long attractionId,
@@ -56,6 +58,7 @@ public class AttractionController {
     }
 
     @DeleteMapping("/{attractionId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deleteAttraction(
             @PathVariable Long destinationId,
             @PathVariable Long attractionId

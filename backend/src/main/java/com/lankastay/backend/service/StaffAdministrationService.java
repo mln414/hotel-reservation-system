@@ -11,8 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.lankastay.backend.security.Permission;
 
 @Service
 public class StaffAdministrationService {
@@ -45,15 +49,26 @@ public class StaffAdministrationService {
     public ProvisionedStaffResponse create(CreateStaffRequest request, UUID actorId, String ip) {
         validateManageableRole(request.role(), request.assignedHotelId());
         String email = StaffUser.normalizeEmail(request.email());
-        if (users.existsByEmail(email)) throw new ApiException(HttpStatus.CONFLICT, "Conflict", "A staff account with this email already exists.");
+        if (!StaffUser.isValidEmail(email)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Validation Error", "Enter a valid email address.");
+        }
+        if (users.existsByEmail(email)) throw duplicateEmail();
 
         String temporaryPassword = passwords.generate();
         StaffUser user = new StaffUser();
         user.setFirstName(request.firstName().trim());
         user.setLastName(request.lastName().trim());
         user.setEmail(email);
+        user.setJobTitle(request.jobTitle() != null ? request.jobTitle().trim() : request.role().name());
+        user.setDepartment(request.department() != null ? request.department().trim() : "Operations");
+        user.setPhone(request.phone() != null ? request.phone().trim() : null);
         user.setRole(request.role());
         user.setAssignedHotelId(request.assignedHotelId());
+
+        Set<com.lankastay.backend.security.Permission> requestedPerms = parsePermissions(request.permissions());
+        Set<com.lankastay.backend.security.Permission> sanitizedPerms = com.lankastay.backend.security.Permission.sanitizeForRole(request.role(), requestedPerms);
+        user.setPermissionsJson(serializePermissions(sanitizedPerms));
+
         user.setStatus(StaffStatus.ACTIVE);
         user.setMustChangePassword(true);
         user.setCreatedBy(actorId);
@@ -62,7 +77,7 @@ public class StaffAdministrationService {
         try {
             user = users.saveAndFlush(user);
         } catch (DataIntegrityViolationException exception) {
-            throw new ApiException(HttpStatus.CONFLICT, "Conflict", "A staff account with this email already exists.");
+            throw duplicateEmail();
         }
         audit.record(actorId, user.getId(), SecurityEventType.STAFF_CREATED, ip, "SUCCESS");
         return new ProvisionedStaffResponse(StaffResponse.from(user), temporaryPassword);
@@ -73,14 +88,42 @@ public class StaffAdministrationService {
         StaffUser target = requireManageableTarget(id, actorId);
         validateManageableRole(request.role(), request.assignedHotelId());
         StaffRole oldRole = target.getRole();
+
+        if (request.firstName() != null && !request.firstName().isBlank()) target.setFirstName(request.firstName().trim());
+        if (request.lastName() != null && !request.lastName().isBlank()) target.setLastName(request.lastName().trim());
+        if (request.jobTitle() != null && !request.jobTitle().isBlank()) target.setJobTitle(request.jobTitle().trim());
+        if (request.department() != null) target.setDepartment(request.department().trim());
+        if (request.phone() != null) target.setPhone(request.phone().trim());
+
         target.setRole(request.role());
         target.setAssignedHotelId(request.assignedHotelId());
+
+        Set<com.lankastay.backend.security.Permission> requestedPerms = parsePermissions(request.permissions());
+        Set<com.lankastay.backend.security.Permission> sanitizedPerms = com.lankastay.backend.security.Permission.sanitizeForRole(request.role(), requestedPerms);
+        target.setPermissionsJson(serializePermissions(sanitizedPerms));
+
         users.save(target);
         if (oldRole != request.role()) {
             sessions.revokeAll(target.getEmail());
             audit.record(actorId, id, SecurityEventType.ROLE_CHANGED, ip, "SUCCESS");
         }
         return StaffResponse.from(target);
+    }
+
+    private Set<Permission> parsePermissions(List<String> list) {
+        if (list == null || list.isEmpty()) return java.util.Collections.emptySet();
+        Set<Permission> set = java.util.EnumSet.noneOf(Permission.class);
+        for (String p : list) {
+            try {
+                set.add(Permission.valueOf(p.trim()));
+            } catch (Exception ignored) {}
+        }
+        return set;
+    }
+
+    private String serializePermissions(Set<Permission> set) {
+        if (set == null || set.isEmpty()) return "";
+        return set.stream().map(Enum::name).collect(Collectors.joining(","));
     }
 
     @Transactional
@@ -99,14 +142,6 @@ public class StaffAdministrationService {
                 : request.status() == StaffStatus.LOCKED ? SecurityEventType.ACCOUNT_LOCKED : SecurityEventType.ACCOUNT_DISABLED;
         audit.record(actorId, id, event, ip, "SUCCESS");
         return StaffResponse.from(target);
-    }
-
-    @Transactional
-    public void delete(UUID id, UUID actorId, String ip) {
-        StaffUser target = requireManageableTarget(id, actorId);
-        sessions.revokeAll(target.getEmail());
-        users.delete(target);
-        audit.record(actorId, id, SecurityEventType.ACCOUNT_DISABLED, ip, "DELETED");
     }
 
     @Transactional
@@ -134,6 +169,10 @@ public class StaffAdministrationService {
 
     private StaffUser requireUser(UUID id) {
         return users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Staff account not found."));
+    }
+
+    private ApiException duplicateEmail() {
+        return new ApiException(HttpStatus.CONFLICT, "Conflict", "An account already exists with this email.");
     }
 
     private void validateManageableRole(StaffRole role, Long assignedHotelId) {

@@ -38,6 +38,12 @@ public class CustomerUser {
     @Column(name = "failed_login_attempts", nullable = false)
     private int failedLoginAttempts = 0;
 
+    @Column(name = "session_version", nullable = false)
+    private long sessionVersion = 0;
+
+    public long getSessionVersion() { return sessionVersion; }
+    public void revokeSessions() { sessionVersion++; }
+
     @Column(name = "locked_until")
     private Instant lockedUntil;
 

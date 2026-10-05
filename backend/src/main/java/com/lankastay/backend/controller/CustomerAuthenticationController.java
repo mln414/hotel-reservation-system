@@ -12,18 +12,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/customer/auth")
 public class CustomerAuthenticationController {
 
-    private static final String CUSTOMER_SESSION_KEY = "LANKASTAY_CUSTOMER_USER";
-
     private final CustomerAuthenticationService customerAuthService;
     private final SecurityAuditService audit;
+    private final com.lankastay.backend.service.CustomerSessionService customerSessions;
 
-    public CustomerAuthenticationController(CustomerAuthenticationService customerAuthService, SecurityAuditService audit) {
+    public CustomerAuthenticationController(CustomerAuthenticationService customerAuthService, SecurityAuditService audit,
+            com.lankastay.backend.service.CustomerSessionService customerSessions) {
         this.customerAuthService = customerAuthService;
         this.audit = audit;
+        this.customerSessions = customerSessions;
     }
 
     @PostMapping("/register")
@@ -43,19 +46,20 @@ public class CustomerAuthenticationController {
         CustomerUser customer = customerAuthService.login(request, clientIp(servletRequest));
 
         HttpSession session = servletRequest.getSession(true);
-        session.setAttribute(CUSTOMER_SESSION_KEY, customer.getId().toString());
+        try {
+            servletRequest.changeSessionId();
+        } catch (IllegalStateException ignored) {
+            // Already new or container does not support changeSessionId
+        }
+        session.setAttribute(com.lankastay.backend.service.CustomerSessionService.CUSTOMER_SESSION_KEY, customer.getId().toString());
+        session.setAttribute(com.lankastay.backend.service.CustomerSessionService.VERSION_SESSION_KEY, customer.getSessionVersion());
 
         return ResponseEntity.ok(CustomerResponse.from(customer));
     }
 
     @GetMapping("/me")
     public ResponseEntity<CustomerResponse> me(HttpServletRequest servletRequest) {
-        HttpSession session = servletRequest.getSession(false);
-        if (session == null || session.getAttribute(CUSTOMER_SESSION_KEY) == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String idStr = (String) session.getAttribute(CUSTOMER_SESSION_KEY);
-        CustomerUser customer = customerAuthService.requireActive(java.util.UUID.fromString(idStr));
+        CustomerUser customer = customerSessions.requireCustomer(servletRequest);
         return ResponseEntity.ok(CustomerResponse.from(customer));
     }
 
@@ -63,7 +67,7 @@ public class CustomerAuthenticationController {
     public ResponseEntity<Void> logout(HttpServletRequest servletRequest) {
         HttpSession session = servletRequest.getSession(false);
         if (session != null) {
-            String idStr = (String) session.getAttribute(CUSTOMER_SESSION_KEY);
+            String idStr = (String) session.getAttribute(com.lankastay.backend.service.CustomerSessionService.CUSTOMER_SESSION_KEY);
             if (idStr != null) {
                 audit.record(java.util.UUID.fromString(idStr), java.util.UUID.fromString(idStr), SecurityEventType.LOGOUT, clientIp(servletRequest), "SUCCESS");
             }

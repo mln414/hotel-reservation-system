@@ -2,10 +2,8 @@ package com.lankastay.backend;
 
 import com.lankastay.backend.dto.auth.*;
 import com.lankastay.backend.entity.CustomerUser;
-import com.lankastay.backend.entity.StaffUser;
 import com.lankastay.backend.repository.CustomerUserRepository;
 import com.lankastay.backend.repository.PasswordResetTokenRepository;
-import com.lankastay.backend.repository.StaffUserRepository;
 import com.lankastay.backend.service.CustomerAuthenticationService;
 import com.lankastay.backend.service.PasswordResetService;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
@@ -22,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@ActiveProfiles("dev")
 public class AuthenticationPersistenceAndResetTest {
 
     @Autowired
@@ -34,13 +34,13 @@ public class AuthenticationPersistenceAndResetTest {
     private CustomerUserRepository customerRepository;
 
     @Autowired
-    private StaffUserRepository staffRepository;
-
-    @Autowired
     private PasswordResetTokenRepository tokenRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.lankastay.backend.service.EmailService emailService;
 
     @BeforeEach
     void setUp() {
@@ -105,11 +105,13 @@ public class AuthenticationPersistenceAndResetTest {
         customerAuthService.register(reg, "127.0.0.1");
 
         // 1. Request reset (always returns generic message)
-        String genericMsg = passwordResetService.requestPasswordReset(new ForgotPasswordRequest(email), "127.0.0.1");
+        String genericMsg = passwordResetService.requestPasswordReset(new ForgotPasswordRequest(email), "127.0.0.1", true);
         assertEquals("If an account exists for that email, password reset instructions have been sent.", genericMsg);
 
-        // 2. Fetch dev reset link
-        String devLink = PasswordResetService.getDevLastResetLink(email);
+        // 2. Capture delivery at the private email boundary, not through HTTP.
+        org.mockito.ArgumentCaptor<String> link = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(emailService).sendPasswordReset(org.mockito.ArgumentMatchers.eq(email), link.capture());
+        String devLink = link.getValue();
         assertNotNull(devLink);
         assertTrue(devLink.contains("token="));
 
@@ -117,7 +119,7 @@ public class AuthenticationPersistenceAndResetTest {
 
         // 3. Reset password
         ResetPasswordRequest resetReq = new ResetPasswordRequest(rawToken, "NewPassword#2026!Secure", "NewPassword#2026!Secure");
-        assertDoesNotThrow(() -> passwordResetService.resetPassword(resetReq, "127.0.0.1"));
+        assertDoesNotThrow(() -> passwordResetService.resetPassword(resetReq, "127.0.0.1", true));
 
         // 4. Verify new password in DB
         CustomerUser updated = customerRepository.findByEmail(email).orElseThrow();
@@ -125,27 +127,7 @@ public class AuthenticationPersistenceAndResetTest {
         assertFalse(passwordEncoder.matches("OldPassword#2026!QA", updated.getPasswordHash()));
 
         // 5. Verify single-use token reuse fails
-        assertThrows(RuntimeException.class, () -> passwordResetService.resetPassword(resetReq, "127.0.0.1"));
+        assertThrows(RuntimeException.class, () -> passwordResetService.resetPassword(resetReq, "127.0.0.1", true));
     }
 
-    @Test
-    @org.springframework.test.annotation.Commit
-    @DisplayName("Reset manager@lankastay.local password in MySQL DB")
-    void resetManagerPasswordToCustom() {
-        StaffUser manager = staffRepository.findByEmail("manager@lankastay.local")
-                .orElseGet(() -> {
-                    StaffUser m = new StaffUser();
-                    m.setEmail("manager@lankastay.local");
-                    m.setFirstName("Hotel");
-                    m.setLastName("Manager");
-                    m.setRole(com.lankastay.backend.entity.StaffRole.MANAGER);
-                    return m;
-                });
-        manager.setPasswordHash(passwordEncoder.encode("githubjsjava2027@"));
-        manager.setMustChangePassword(false);
-        manager.setFailedLoginAttempts(0);
-        manager.setLockedUntil(null);
-        manager.setStatus(com.lankastay.backend.entity.StaffStatus.ACTIVE);
-        staffRepository.save(manager);
-    }
 }

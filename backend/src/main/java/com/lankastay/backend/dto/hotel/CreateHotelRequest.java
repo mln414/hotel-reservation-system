@@ -45,6 +45,7 @@ public record CreateHotelRequest(
         String propertySize,
         String languages,
         String videoUrl,
+        List<HotelPolicyRecord> policyRecords,
         List<String> facilities,
         List<String> gallery,
         List<String> collectionIds

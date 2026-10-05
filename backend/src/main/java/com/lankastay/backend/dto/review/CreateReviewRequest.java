@@ -1,57 +1,49 @@
-// SE2030 LankaStay - Customer Review Management and Moderation
 package com.lankastay.backend.dto.review;
 
 import jakarta.validation.constraints.*;
 import java.util.List;
 
 public record CreateReviewRequest(
-        @NotNull(message = "Hotel ID is required")
-        Long hotelId,
-
-        @NotBlank(message = "Guest name is required")
-        @Size(max = 150, message = "Guest name must not exceed 150 characters")
-        String guestName,
-
-        @NotBlank(message = "Email is required")
-        @Email(message = "Invalid email format")
-        @Size(max = 150, message = "Email must not exceed 150 characters")
-        String guestEmail,
+        @NotNull(message = "Reservation ID is required")
+        Long reservationId,
 
         @NotNull(message = "Overall rating is required")
-        @DecimalMin(value = "1.0", message = "Rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Rating must not exceed 5.0")
-        Double rating,
+        @Min(value = 1, message = "Rating must be between 1 and 5")
+        @Max(value = 5, message = "Rating must be between 1 and 5")
+        Integer overallRating,
 
-        @DecimalMin(value = "1.0", message = "Cleanliness rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Cleanliness rating must not exceed 5.0")
-        Double cleanlinessRating,
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer cleanlinessRating,
 
-        @DecimalMin(value = "1.0", message = "Staff rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Staff rating must not exceed 5.0")
-        Double staffRating,
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer comfortRating,
 
-        @DecimalMin(value = "1.0", message = "Facilities rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Facilities rating must not exceed 5.0")
-        Double facilitiesRating,
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer staffServiceRating,
 
-        @DecimalMin(value = "1.0", message = "Location rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Location rating must not exceed 5.0")
-        Double locationRating,
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer facilitiesRating,
 
-        @DecimalMin(value = "1.0", message = "Value rating must be at least 1.0")
-        @DecimalMax(value = "5.0", message = "Value rating must not exceed 5.0")
-        Double valueRating,
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer locationRating,
+
+        @Min(value = 1, message = "Category rating must be between 1 and 5")
+        @Max(value = 5, message = "Category rating must be between 1 and 5")
+        Integer valueForMoneyRating,
 
         @NotBlank(message = "Review title is required")
-        @Size(min = 3, max = 200, message = "Title must be between 3 and 200 characters")
+        @Size(min = 4, max = 120, message = "Review title must be between 4 and 120 characters")
         String title,
 
         @NotBlank(message = "Review comment is required")
-        @Size(min = 10, max = 3000, message = "Comment must be between 10 and 3000 characters")
+        @Size(min = 20, max = 2000, message = "Review comment must be between 20 and 2000 characters")
         String comment,
 
-        String tripType,
-        String roomType,
-        Long reservationId,
-        List<String> images
+        @Size(max = 5, message = "Maximum of 5 photos allowed")
+        List<String> photos
 ) {}
