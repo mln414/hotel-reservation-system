@@ -1,0 +1,130 @@
+import galleHeritageTour from "../assets/images/home/ocean - bay/galle-heritage-tour.png";
+import oceanKayakingAdventure from "../assets/images/home/ocean - bay/ocean-kayaking-adventure.png";
+import sunsetBeachWalk from "../assets/images/home/ocean - bay/sunset-beach-walk.png";
+import beachesImage from "../assets/images/home/discover/beaches-and-water.png";
+import culturalImage from "../assets/images/home/discover/cultural-tours.png";
+import wellnessImage from "../assets/images/home/discover/wellness-retreat.png";
+import wildlifeImage from "../assets/images/home/discover/wildlife-safari.png";
+
+export const experiences = [
+  {
+    id: 1,
+    contentType: "EXPERIENCE_COLLECTION",
+    slug: "wildlife-safari",
+    title: "Wildlife Safari",
+    category: "Wildlife & Nature",
+    shortDescription: "Discover Sri Lanka’s wildlife through unforgettable safari adventures.",
+    description: "Explore Sri Lanka’s remarkable national parks, open landscapes and rich wildlife through carefully selected safari experiences.",
+    image: wildlifeImage,
+    heroImage: wildlifeImage,
+    location: "Yala & Wildlife Regions",
+    highlights: ["National park safari experiences", "Wildlife and nature photography", "Guided outdoor exploration", "Scenic landscapes"],
+    relatedHotelIds: [601, 602],
+    featured: true,
+    active: true,
+  },
+  {
+    id: 2,
+    contentType: "EXPERIENCE_COLLECTION",
+    slug: "cultural-tours",
+    title: "Cultural Tours",
+    category: "Culture & Heritage",
+    shortDescription: "Experience the traditions, history and living culture of Sri Lanka.",
+    description: "Discover historic cities, cultural landmarks, local traditions and Sri Lanka’s rich heritage through inspiring journeys.",
+    image: culturalImage,
+    heroImage: culturalImage,
+    location: "Kandy, Sigiriya & Heritage Regions",
+    highlights: ["Historic landmarks", "Traditional culture", "Heritage destinations", "Local experiences"],
+    relatedHotelIds: [301, 401, 402, 501],
+    featured: true,
+    active: true,
+  },
+  {
+    id: 3,
+    contentType: "EXPERIENCE_COLLECTION",
+    slug: "beaches-and-water",
+    title: "Beaches & Water",
+    category: "Coast & Adventure",
+    shortDescription: "Relax by the coast and enjoy sun, sea and tropical escapes.",
+    description: "Experience Sri Lanka’s coastline through beach stays, ocean views and selected water-based experiences.",
+    image: beachesImage,
+    heroImage: beachesImage,
+    location: "Galle, Negombo & Coastal Sri Lanka",
+    highlights: ["Beach escapes", "Ocean activities", "Coastal scenery", "Relaxing seaside stays"],
+    relatedHotelIds: [201, 202, 301, 302],
+    featured: true,
+    active: true,
+  },
+  {
+    id: 4,
+    contentType: "EXPERIENCE_COLLECTION",
+    slug: "wellness",
+    title: "Wellness",
+    category: "Wellness & Relaxation",
+    shortDescription: "Reconnect your mind and body with peaceful wellness experiences.",
+    description: "Slow down and recharge with serene surroundings, peaceful retreats and wellness-inspired stays across Sri Lanka.",
+    image: wellnessImage,
+    heroImage: wellnessImage,
+    location: "Hill Country & Coastal Retreats",
+    highlights: ["Relaxation", "Nature retreats", "Mindful escapes", "Peaceful surroundings"],
+    relatedHotelIds: [501, 502, 302],
+    featured: true,
+    active: true,
+  },
+  {
+    id: "302E01",
+    hotelId: 302,
+    name: "Sunset Beach Walk",
+    image: sunsetBeachWalk,
+    category: "Relaxation",
+    duration: "1 Hour",
+    bestTime: "Evening",
+    shortDescription:
+      "Enjoy a peaceful golden-hour walk along the beach while taking in beautiful ocean views and the relaxing atmosphere of Sri Lanka's southern coast.",
+    highlights: [
+      "Golden-hour ocean views",
+      "Relaxing beachfront walk",
+      "Ideal for couples and families",
+    ],
+    active: true,
+    featured: false,
+  },
+  {
+    id: "302E02",
+    hotelId: 302,
+    name: "Galle Heritage Tour",
+    image: galleHeritageTour,
+    category: "Culture",
+    duration: "3 Hours",
+    bestTime: "Morning",
+    shortDescription:
+      "Explore the historic streets of Galle Fort and discover colonial architecture, local culture, heritage landmarks, and the charm of this UNESCO-listed coastal city.",
+    highlights: [
+      "Explore Galle Fort",
+      "Discover local heritage",
+      "Guided cultural experience",
+    ],
+    active: true,
+    featured: false,
+  },
+  {
+    id: "302E03",
+    hotelId: 302,
+    name: "Ocean Kayaking Adventure",
+    image: oceanKayakingAdventure,
+    category: "Adventure",
+    duration: "2 Hours",
+    bestTime: "Morning",
+    shortDescription:
+      "Enjoy an exciting guided kayaking experience along the coast while discovering tropical scenery and the clear waters surrounding the resort.",
+    highlights: [
+      "Guided kayaking experience",
+      "Coastal ocean views",
+      "Adventure on the water",
+    ],
+    active: true,
+    featured: false,
+  },
+];
+
+export default experiences;

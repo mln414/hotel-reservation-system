@@ -1,0 +1,9 @@
+.management-module-page { display: grid; gap: 24px; }
+.management-module-page header > span { color: #ad780d; font-size: .62rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.management-module-page header h1 { margin: 7px 0; color: #062844; font-family: Georgia, serif; font-size: clamp(2rem,3.5vw,2.7rem); }
+.management-module-page header p { margin: 0; color: #6d7f87; font-size: .78rem; }
+.management-module-placeholder { display: flex; min-height: 240px; align-items: center; justify-content: center; gap: 14px; padding: 32px; border: 1px solid #dbe3e0; border-radius: 15px; background: white; color: #b37d10; text-align: left; box-shadow: 0 7px 20px rgba(9,45,71,.035); }
+.management-module-placeholder div { display: grid; gap: 5px; }
+.management-module-placeholder h2 { margin: 0; color: #173b52; font-family: Georgia,serif; font-size: 1.2rem; }
+.management-module-placeholder p { margin: 0; color: #72838a; font-size: .7rem; }
+@media (max-width: 480px) { .management-module-placeholder { align-items: flex-start; flex-direction: column; } }

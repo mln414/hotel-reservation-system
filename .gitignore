@@ -1,6 +1,57 @@
-target/
-uploads/
-*.log
+# Environment / secrets
 .env
-application-local.properties
+.env.*
+!.env.example
+scripts/qa/.env.qa
+
+# Java / Maven
+**/target/
+**/*.class
+**/.m2/
+**/.mvn-repository/
+
+# React / Node
+**/node_modules/
+**/dist/
+frontend/tmp/
+
+# IDE
+.idea/
 .vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# Logs / crash dumps
+*.log
+*.err.log
+*.cookies
+hs_err_pid*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary
+tmp/
+scratch/
+*.tmp
+*.zip
+
+# Duplicate / tool repositories
+.rollback-worktree/
+.target-repo/
+hotel-reservation-system/
+
+# Runtime uploads (Preserve directory structure via .gitkeep)
+uploads/*
+!uploads/.gitkeep
+!uploads/destinations/
+!uploads/hotels/
+uploads/destinations/*
+!uploads/destinations/.gitkeep
+uploads/hotels/*
+!uploads/hotels/.gitkeep
+backend/uploads/

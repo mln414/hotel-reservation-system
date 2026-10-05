@@ -1,0 +1,104 @@
+.register-form-header {
+  margin-bottom: 22px;
+}
+
+.register-auth-form {
+  gap: 16px;
+}
+
+.register-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 16px;
+}
+
+.password-guide {
+  padding: 14px 16px;
+  border: 1px solid #dce4e2;
+  border-radius: 12px;
+  background: #f8faf9;
+}
+
+.password-strength-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #526672;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.password-strength-row strong {
+  color: #173249;
+  font-weight: 800;
+}
+
+.password-strength-meter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.password-strength-meter span {
+  height: 5px;
+  border-radius: 999px;
+  background: #dce4e2;
+}
+
+.password-strength-meter--1 span:nth-child(-n + 1) { background: #bb5656; }
+.password-strength-meter--2 span:nth-child(-n + 2) { background: #c99119; }
+.password-strength-meter--3 span:nth-child(-n + 3) { background: #5f8a70; }
+.password-strength-meter--4 span:nth-child(-n + 4) { background: #287253; }
+
+.password-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  list-style: none;
+}
+
+.password-requirements li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.password-requirements svg {
+  color: #94a3b8;
+}
+
+.password-requirements .is-met {
+  color: #166534;
+  font-weight: 800;
+}
+
+.password-requirements .is-met svg {
+  color: #166534;
+}
+
+.register-terms strong {
+  color: #173249;
+}
+
+.register-terms + .auth-field-error {
+  display: block;
+  margin-top: 6px;
+}
+
+@media (max-width: 980px) and (min-width: 701px) {
+  .register-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .register-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
