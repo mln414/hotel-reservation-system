@@ -111,6 +111,9 @@ public class Hotel {
     @Column(name = "video_url", length = 500)
     private String videoUrl;
 
+    @Column(name = "policies_json", columnDefinition = "TEXT")
+    private String policiesJson;
+
     @Column(name = "last_updated_section", length = 50)
     private String lastUpdatedSection = "basic";
 
@@ -247,6 +250,9 @@ public class Hotel {
 
     public String getVideoUrl() { return videoUrl; }
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+
+    public String getPoliciesJson() { return policiesJson; }
+    public void setPoliciesJson(String policiesJson) { this.policiesJson = policiesJson; }
 
     public String getLastUpdatedSection() { return lastUpdatedSection; }
     public void setLastUpdatedSection(String lastUpdatedSection) { this.lastUpdatedSection = lastUpdatedSection; }

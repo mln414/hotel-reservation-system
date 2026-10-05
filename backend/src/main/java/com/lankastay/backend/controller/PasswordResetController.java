@@ -1,58 +1,34 @@
 package com.lankastay.backend.controller;
 
-import com.lankastay.backend.dto.auth.ForgotPasswordRequest;
-import com.lankastay.backend.dto.auth.MessageResponse;
-import com.lankastay.backend.dto.auth.ResetPasswordRequest;
+import com.lankastay.backend.dto.auth.*;
 import com.lankastay.backend.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api/v1/auth")
 public class PasswordResetController {
-
-    private final PasswordResetService passwordResetService;
-
-    public PasswordResetController(PasswordResetService passwordResetService) {
-        this.passwordResetService = passwordResetService;
+    private final PasswordResetService service;
+    public PasswordResetController(PasswordResetService service) { this.service = service; }
+    @PostMapping("/api/v1/auth/forgot-password")
+    public MessageResponse staffRequest(@Valid @RequestBody ForgotPasswordRequest body, HttpServletRequest request) {
+        return new MessageResponse(service.requestPasswordReset(body, request.getRemoteAddr(), false));
     }
-
-    @PostMapping("/forgot-password")
-    public ResponseEntity<MessageResponse> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request,
-            HttpServletRequest servletRequest
-    ) {
-        String message = passwordResetService.requestPasswordReset(request, clientIp(servletRequest));
-        return ResponseEntity.ok(new MessageResponse(message));
+    @PostMapping("/api/v1/customer/auth/forgot-password")
+    public MessageResponse customerRequest(@Valid @RequestBody ForgotPasswordRequest body, HttpServletRequest request) {
+        return new MessageResponse(service.requestPasswordReset(body, request.getRemoteAddr(), true));
     }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<MessageResponse> resetPassword(
-            @Valid @RequestBody ResetPasswordRequest request,
-            HttpServletRequest servletRequest
-    ) {
-        passwordResetService.resetPassword(request, clientIp(servletRequest));
-        return ResponseEntity.ok(new MessageResponse("Password has been reset successfully. You may now log in with your new password."));
+    @PostMapping("/api/v1/auth/reset-password")
+    public MessageResponse staffReset(@Valid @RequestBody ResetPasswordRequest body, HttpServletRequest request) {
+        service.resetPassword(body, request.getRemoteAddr(), false);
+        return success();
     }
-
-    @GetMapping("/dev-last-reset-link")
-    public ResponseEntity<Map<String, String>> getDevLastResetLink(@RequestParam(required = false) String email, HttpServletRequest request) {
-        String ip = clientIp(request);
-        if (!"127.0.0.1".equals(ip) && !"0:0:0:0:0:0:0:1".equals(ip) && !"localhost".equalsIgnoreCase(ip)) {
-            return ResponseEntity.status(403).build();
-        }
-        String link = PasswordResetService.getDevLastResetLink(email);
-        if (link == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(Map.of("resetLink", link));
+    @PostMapping("/api/v1/customer/auth/reset-password")
+    public MessageResponse customerReset(@Valid @RequestBody ResetPasswordRequest body, HttpServletRequest request) {
+        service.resetPassword(body, request.getRemoteAddr(), true);
+        return success();
     }
-
-    private String clientIp(HttpServletRequest request) {
-        return request.getRemoteAddr();
+    private MessageResponse success() {
+        return new MessageResponse("Password has been reset successfully. You may now log in with your new password.");
     }
 }

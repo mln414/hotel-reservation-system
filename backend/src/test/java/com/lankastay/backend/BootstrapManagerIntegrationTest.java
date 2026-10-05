@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class BootstrapManagerIntegrationTest {
     private static final String EMAIL = "bootstrap.manager@lankastay.invalid";
-    private static final String TEMPORARY_PASSWORD = UUID.randomUUID().toString();
+    private static final String TEMPORARY_PASSWORD = "Bootstrap1!" + UUID.randomUUID();
     private static final String DATABASE_NAME = "bootstrap_" + UUID.randomUUID().toString().replace("-", "");
 
     @DynamicPropertySource
@@ -57,6 +57,6 @@ class BootstrapManagerIntegrationTest {
         mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType("application/json")
                         .content("{\"email\":\"" + EMAIL + "\",\"password\":\"definitely-not-the-password\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+                .andExpect(jsonPath("$.message").value("Invalid email or password."));
     }
 }

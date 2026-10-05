@@ -49,12 +49,14 @@ public class ManagementDestinationController {
     }
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<DestinationResponse> createDestination(@Valid @RequestBody DestinationCreateRequest request) {
         DestinationResponse created = destinationService.createDestination(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<DestinationResponse> updateDestination(
             @PathVariable Long id,
             @Valid @RequestBody DestinationUpdateRequest request
@@ -64,6 +66,7 @@ public class ManagementDestinationController {
     }
 
     @PatchMapping("/{id}/status")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<DestinationResponse> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody DestinationStatusUpdateRequest request
@@ -73,6 +76,7 @@ public class ManagementDestinationController {
     }
 
     @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deleteDestination(@PathVariable Long id) {
         destinationService.deleteDestination(id);
         return ResponseEntity.noContent().build();

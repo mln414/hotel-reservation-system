@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,8 @@ import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -61,8 +64,23 @@ public class AuthenticationController {
 
     @PostMapping("/change-initial-password")
     public CurrentUserResponse changeInitial(@AuthenticationPrincipal StaffPrincipal principal,
-            @Valid @RequestBody ChangeInitialPasswordRequest request, HttpServletRequest servletRequest) {
-        return CurrentUserResponse.from(authenticationService.changeInitialPassword(principal.id(), request, clientIp(servletRequest)));
+            @Valid @RequestBody ChangeInitialPasswordRequest request, HttpServletRequest servletRequest,
+            jakarta.servlet.http.HttpServletResponse servletResponse) {
+        StaffUser user = authenticationService.changeInitialPassword(principal.id(), request, clientIp(servletRequest));
+
+        String oldSessionId = servletRequest.getSession().getId();
+        servletRequest.changeSessionId();
+        StaffPrincipal refreshedPrincipal = StaffPrincipal.from(user);
+        Authentication refreshedAuthentication = UsernamePasswordAuthenticationToken.authenticated(
+                refreshedPrincipal, null, refreshedPrincipal.getAuthorities());
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(refreshedAuthentication);
+        SecurityContextHolder.setContext(context);
+        contextRepository.saveContext(context, servletRequest, servletResponse);
+        sessionRegistry.removeSessionInformation(oldSessionId);
+        sessionRegistry.registerNewSession(servletRequest.getSession().getId(), refreshedPrincipal);
+
+        return CurrentUserResponse.from(user);
     }
 
     @PostMapping("/change-password")

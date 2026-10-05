@@ -1,6 +1,8 @@
 package com.lankastay.backend.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,11 +24,29 @@ public class RoomRate {
     @Column(name = "rate_plan_code", nullable = false, length = 50)
     private String ratePlanCode;
 
-    @Column(name = "base_nightly_rate", nullable = false)
-    private Double baseNightlyRate;
+    @Column(name = "rate_type", nullable = false, length = 50)
+    private String rateType = "BASE";
 
-    @Column(name = "weekend_nightly_rate")
-    private Double weekendNightlyRate;
+    @Column(name = "pricing_method", nullable = false, length = 50)
+    private String pricingMethod = "SET_PRICE";
+
+    @Column(name = "base_nightly_rate", nullable = false, precision = 14, scale = 2)
+    private BigDecimal baseNightlyRate;
+
+    @Column(name = "weekend_nightly_rate", precision = 14, scale = 2)
+    private BigDecimal weekendNightlyRate;
+
+    @Column(name = "valid_from")
+    private LocalDate validFrom;
+
+    @Column(name = "valid_to")
+    private LocalDate validTo;
+
+    @Column(name = "minimum_stay", nullable = false)
+    private Integer minimumStay = 1;
+
+    @Column(name = "applicable_days", length = 100)
+    private String applicableDays;
 
     @Column(name = "meal_plan", nullable = false, length = 50)
     private String mealPlan = "ROOM_ONLY";
@@ -37,11 +57,14 @@ public class RoomRate {
     @Column(name = "deposit_required", nullable = false)
     private Boolean depositRequired = false;
 
-    @Column(name = "deposit_percentage")
-    private Double depositPercentage = 0.0;
+    @Column(name = "deposit_percentage", precision = 5, scale = 2)
+    private BigDecimal depositPercentage = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -51,18 +74,31 @@ public class RoomRate {
 
     public RoomRate() {}
 
-    public RoomRate(Long hotelId, Long roomId, String ratePlanName, String ratePlanCode, Double baseNightlyRate, Double weekendNightlyRate, String mealPlan, String cancellationPolicy, Boolean depositRequired, Double depositPercentage, String status) {
+    public RoomRate(Long hotelId, Long roomId, String ratePlanName, String ratePlanCode, BigDecimal baseNightlyRate,
+                    BigDecimal weekendNightlyRate, String mealPlan, String cancellationPolicy, Boolean depositRequired,
+                    BigDecimal depositPercentage, String status) {
         this.hotelId = hotelId;
         this.roomId = roomId;
         this.ratePlanName = ratePlanName;
         this.ratePlanCode = ratePlanCode;
         this.baseNightlyRate = baseNightlyRate;
         this.weekendNightlyRate = weekendNightlyRate;
-        this.mealPlan = mealPlan;
-        this.cancellationPolicy = cancellationPolicy;
-        this.depositRequired = depositRequired;
-        this.depositPercentage = depositPercentage;
-        this.status = status;
+        this.mealPlan = mealPlan != null ? mealPlan : "ROOM_ONLY";
+        this.cancellationPolicy = cancellationPolicy != null ? cancellationPolicy : "FLEXIBLE_24H";
+        this.depositRequired = depositRequired != null ? depositRequired : false;
+        this.depositPercentage = depositPercentage != null ? depositPercentage : BigDecimal.ZERO;
+        this.status = status != null ? status : "ACTIVE";
+    }
+
+    public RoomRate(Long hotelId, Long roomId, String ratePlanName, String ratePlanCode, Double baseNightlyRate,
+                    Double weekendNightlyRate, String mealPlan, String cancellationPolicy, Boolean depositRequired,
+                    Double depositPercentage, String status) {
+        this(hotelId, roomId, ratePlanName, ratePlanCode,
+                baseNightlyRate != null ? BigDecimal.valueOf(baseNightlyRate) : null,
+                weekendNightlyRate != null ? BigDecimal.valueOf(weekendNightlyRate) : null,
+                mealPlan, cancellationPolicy, depositRequired,
+                depositPercentage != null ? BigDecimal.valueOf(depositPercentage) : BigDecimal.ZERO,
+                status);
     }
 
     @PrePersist
@@ -91,11 +127,29 @@ public class RoomRate {
     public String getRatePlanCode() { return ratePlanCode; }
     public void setRatePlanCode(String ratePlanCode) { this.ratePlanCode = ratePlanCode; }
 
-    public Double getBaseNightlyRate() { return baseNightlyRate; }
-    public void setBaseNightlyRate(Double baseNightlyRate) { this.baseNightlyRate = baseNightlyRate; }
+    public String getRateType() { return rateType; }
+    public void setRateType(String rateType) { this.rateType = rateType; }
 
-    public Double getWeekendNightlyRate() { return weekendNightlyRate; }
-    public void setWeekendNightlyRate(Double weekendNightlyRate) { this.weekendNightlyRate = weekendNightlyRate; }
+    public String getPricingMethod() { return pricingMethod; }
+    public void setPricingMethod(String pricingMethod) { this.pricingMethod = pricingMethod; }
+
+    public BigDecimal getBaseNightlyRate() { return baseNightlyRate; }
+    public void setBaseNightlyRate(BigDecimal baseNightlyRate) { this.baseNightlyRate = baseNightlyRate; }
+
+    public BigDecimal getWeekendNightlyRate() { return weekendNightlyRate; }
+    public void setWeekendNightlyRate(BigDecimal weekendNightlyRate) { this.weekendNightlyRate = weekendNightlyRate; }
+
+    public LocalDate getValidFrom() { return validFrom; }
+    public void setValidFrom(LocalDate validFrom) { this.validFrom = validFrom; }
+
+    public LocalDate getValidTo() { return validTo; }
+    public void setValidTo(LocalDate validTo) { this.validTo = validTo; }
+
+    public Integer getMinimumStay() { return minimumStay; }
+    public void setMinimumStay(Integer minimumStay) { this.minimumStay = minimumStay; }
+
+    public String getApplicableDays() { return applicableDays; }
+    public void setApplicableDays(String applicableDays) { this.applicableDays = applicableDays; }
 
     public String getMealPlan() { return mealPlan; }
     public void setMealPlan(String mealPlan) { this.mealPlan = mealPlan; }
@@ -106,12 +160,18 @@ public class RoomRate {
     public Boolean getDepositRequired() { return depositRequired; }
     public void setDepositRequired(Boolean depositRequired) { this.depositRequired = depositRequired; }
 
-    public Double getDepositPercentage() { return depositPercentage; }
-    public void setDepositPercentage(Double depositPercentage) { this.depositPercentage = depositPercentage; }
+    public BigDecimal getDepositPercentage() { return depositPercentage; }
+    public void setDepositPercentage(BigDecimal depositPercentage) { this.depositPercentage = depositPercentage; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

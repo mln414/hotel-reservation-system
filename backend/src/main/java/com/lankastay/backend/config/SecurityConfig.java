@@ -61,14 +61,15 @@ public class SecurityConfig {
                 .csrf(config -> config.csrfTokenRepository(csrf))
                 .securityContext(config -> config.securityContextRepository(contextRepository))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf", "/api/destinations/**",
-                                "/api/public/**", "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
-                        .requestMatchers("/api/v1/auth/dev-last-reset-link").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf", "/api/destinations/**", "/api/public/**", "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/discounts/validate",
+                                "/api/v1/management/discounts/validate").permitAll()
                         .requestMatchers("/api/v1/customer/auth/**").permitAll()
-                        .requestMatchers("/api/v1/customer/reservations/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/management/discounts/validate").permitAll()
+                        // Customer sessions are validated inside customer controllers; they are deliberately
+                        // separate from the staff SecurityContext and all mutations remain CSRF protected.
+                        .requestMatchers("/api/v1/customer/reservations/**", "/api/v1/customer/reviews/**", "/api/v1/customer/profile/**").permitAll()
                         .requestMatchers("/api/v1/admin/staff/**").hasRole("MANAGER")
                         .requestMatchers("/api/v1/hotels/**", "/api/management/**", "/api/v1/management/**", "/api/media/**").hasAnyRole("MANAGER", "HOTEL_STAFF", "RECEPTIONIST")
                         .requestMatchers("/api/v1/auth/**").authenticated()
@@ -76,12 +77,14 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionFixation(fixation -> fixation.changeSessionId())
-                        .maximumSessions(-1).sessionRegistry(sessionRegistry))
+                        .maximumSessions(-1).sessionRegistry(sessionRegistry)
+                        .expiredSessionStrategy(event -> writeSecurityError(event.getResponse(), 401, "Authentication is required.")))
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) -> writeSecurityError(response, 401, "Authentication is required."))
                         .accessDeniedHandler((request, response, exception) -> writeSecurityError(response, 403, "Access is denied.")))
                 .headers(headers -> headers
                         .contentTypeOptions(Customizer.withDefaults())
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox"))
                         .referrerPolicy(policy -> policy.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                         .permissionsPolicy(policy -> policy.policy("camera=(), microphone=(), geolocation=(self)")))
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -94,7 +97,7 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(
-            @Value("${lankastay.security.allowed-origins:http://localhost:5174,http://localhost:5173}") String origins) {
+            @Value("${lankastay.security.allowed-origins:http://localhost:5174,http://localhost:5173,http://127.0.0.1:5174,http://127.0.0.1:5173}") String origins) {
         CorsConfiguration configuration = new CorsConfiguration();
         // Security: credentialed CORS explicitly allows trusted development origins instead of using a wildcard.
         configuration.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).filter(s -> !s.isBlank()).toList());

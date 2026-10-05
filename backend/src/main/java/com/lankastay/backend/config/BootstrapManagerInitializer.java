@@ -33,10 +33,16 @@ public class BootstrapManagerInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (users.existsByRole(StaffRole.MANAGER) || email.isBlank() || temporaryPassword.isBlank()) return;
+        if (email.isBlank() || temporaryPassword.isBlank()) return;
+        String normalizedEmail = StaffUser.normalizeEmail(email);
+        if (!StaffUser.isValidEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("Initial manager email is invalid.");
+        }
+        // Never overwrite an existing credential. This makes bootstrap safe across restarts.
+        if (users.existsByEmail(normalizedEmail)) return;
         policy.validate(temporaryPassword);
         StaffUser manager = new StaffUser();
-        manager.setEmail(email);
+        manager.setEmail(normalizedEmail);
         manager.setFirstName("Bootstrap");
         manager.setLastName("Manager");
         manager.setRole(StaffRole.MANAGER);

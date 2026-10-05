@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 public class StaffUserDetailsService implements UserDetailsService {
     private final StaffUserRepository repository;
 
-    public StaffUserDetailsService(StaffUserRepository repository) { this.repository = repository; }
+    public StaffUserDetailsService(StaffUserRepository repository) {
+        this.repository = repository;
+    }
 
     @Override
     public UserDetails loadUserByUsername(String username) {
