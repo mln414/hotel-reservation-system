@@ -5,9 +5,18 @@ import initialHotels from '../data/hotels.js'
 import { createManagedRate, resolveEffectiveRate, resolveRoomEffectiveRate } from '../utils/rateFormatting.js'
 import { rateApi } from '../services/rateApi.js'
 import useAuth from './useAuth.js'
+import usePersistentContent from './usePersistentContent.js'
 
-const timestamp = () => new Date().toISOString()
-const makeId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+const initialHotelRates = initialHotels.filter((hotel) => Number(hotel.price) > 0).map((hotel) => ({
+  id: `legacy-hotel-rate-${hotel.id}`,
+  hotelId: hotel.id,
+  name: 'Base Rate',
+  rateType: 'BASE',
+  pricingMethod: 'SET_PRICE',
+  amount: Number(hotel.price),
+  status: 'ACTIVE',
+  notes: 'Default property-level rate.',
+}))
 
 const mapBackendRate = (rate) => ({
   id: rate.id,
@@ -19,6 +28,8 @@ const mapBackendRate = (rate) => ({
   ratePlanCode: rate.ratePlanCode,
   rateType: rate.rateType || 'BASE',
   pricingMethod: rate.pricingMethod || 'SET_PRICE',
+  changeType: rate.changeType || 'PERCENTAGE',
+  value: Number(rate.pricingValue ?? rate.baseNightlyRate),
   amount: Number(rate.baseNightlyRate),
   baseNightlyRate: Number(rate.baseNightlyRate),
   weekendAmount: Number(rate.weekendNightlyRate || rate.baseNightlyRate),
@@ -42,7 +53,9 @@ const mapBackendRate = (rate) => ({
 export function RatesProvider({ children }) {
   const { user } = useAuth()
   const { rooms } = useRooms()
-  const [hotelRates, setHotelRates] = useState(() => initialHotels.filter((hotel) => Number(hotel.price) > 0).map((hotel) => ({ id: `legacy-hotel-rate-${hotel.id}`, hotelId: hotel.id, name: 'Base Rate', rateType: 'BASE', pricingMethod: 'SET_PRICE', amount: Number(hotel.price), status: 'ACTIVE', notes: 'Default property-level rate.', createdAt: null, updatedAt: null, legacy: true })))
+  const hotelRateStore = usePersistentContent('HOTEL_RATE', initialHotelRates, user)
+  const { create: createHotelRate, update: updateHotelRateEntry } = hotelRateStore
+  const hotelRates = hotelRateStore.items
   const [roomRates, setRoomRates] = useState(() => rooms.filter((room) => Number(room.price) > 0).map((room) => ({
     id: `legacy-rate-${room.id}`, hotelId: room.hotelId, roomTypeId: room.id, roomId: room.id,
     name: 'Base Rate', ratePlanName: 'Base Rate', ratePlanCode: `BASE-${room.id}`, rateType: 'BASE', pricingMethod: 'SET_PRICE', amount: Number(room.price), baseNightlyRate: Number(room.price), weekendAmount: Number(room.price), weekendNightlyRate: Number(room.price), validFrom: '2026-01-01', validTo: '2027-12-31',
@@ -50,45 +63,40 @@ export function RatesProvider({ children }) {
     status: 'ACTIVE', createdAt: null, updatedAt: null, legacy: true,
   })))
   const [ratesLoading, setRatesLoading] = useState(false)
+  const [ratesError, setRatesError] = useState('')
 
   const refreshRates = useCallback(async () => {
     setRatesLoading(true)
     try {
-      const publicRates = await rateApi.listPublicRates()
-      const managedRates = user ? await rateApi.listRates().catch(() => []) : []
-      if (Array.isArray(publicRates)) {
-        const byId = new Map([...publicRates, ...managedRates].map((rate) => [String(rate.id), rate]))
-        setRoomRates([...byId.values()].map(mapBackendRate))
-        setHotelRates([])
-      }
-    } catch {
-      // Retain existing state on network error
+      const records = user ? await rateApi.listRates() : await rateApi.listPublicRates()
+      setRoomRates(records.map(mapBackendRate))
+      setRatesError('')
+      return records
+    } catch (cause) {
+      setRatesError(cause.message || 'Rates could not be loaded from the server.')
+      throw cause
     } finally {
       setRatesLoading(false)
     }
   }, [user])
 
   useEffect(() => {
-    refreshRates()
+    refreshRates().catch(() => {})
   }, [refreshRates])
 
-  const addHotelRate = useCallback((data) => {
-    const record = createManagedRate(data, { id: makeId('hotel-rate') })
-    setHotelRates((current) => [...current, record])
-    return record
-  }, [])
+  const addHotelRate = useCallback((data) => createHotelRate(createManagedRate(data, { id: `hotel-rate-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` })), [createHotelRate])
 
-  const updateHotelRate = useCallback((id, updates) => {
-    setHotelRates((current) => current.map((record) => String(record.id) === String(id) ? { ...record, ...updates, updatedAt: timestamp() } : record))
-  }, [])
+  const updateHotelRate = useCallback((id, updates) => updateHotelRateEntry(id, updates), [updateHotelRateEntry])
 
   const addRoomRate = useCallback(async (data) => {
     const hotelId = Number(data.hotelId)
     const roomId = Number(data.roomTypeId || data.roomId)
     const ratePlanName = data.name?.trim() || data.ratePlanName?.trim() || 'New Rate Plan'
     const ratePlanCode = data.ratePlanCode?.trim() || `RP-${Date.now().toString(36).toUpperCase()}`
-    const baseNightlyRate = Number(data.amount || data.baseNightlyRate || 0)
-    const weekendNightlyRate = Number(data.weekendAmount || data.weekendNightlyRate || baseNightlyRate)
+    const pricingMethod = data.rateType === 'BASE' ? 'SET_PRICE' : (data.pricingMethod || 'SET_PRICE')
+    const setsFixedPrice = pricingMethod === 'SET_PRICE'
+    const baseNightlyRate = setsFixedPrice ? Number(data.amount || data.baseNightlyRate || 0) : null
+    const weekendNightlyRate = setsFixedPrice ? Number(data.weekendAmount || data.weekendNightlyRate || baseNightlyRate) : null
     const applicableDaysStr = Array.isArray(data.applicableDays) ? data.applicableDays.join(',') : (data.applicableDays || null)
 
     const payload = {
@@ -97,7 +105,9 @@ export function RatesProvider({ children }) {
       ratePlanName,
       ratePlanCode,
       rateType: data.rateType || 'BASE',
-      pricingMethod: data.pricingMethod || 'SET_PRICE',
+      pricingMethod,
+      pricingValue: setsFixedPrice ? null : Number(data.value || 0),
+      changeType: data.changeType || 'PERCENTAGE',
       baseNightlyRate,
       weekendNightlyRate,
       validFrom: data.validFrom || null,
@@ -115,27 +125,35 @@ export function RatesProvider({ children }) {
       const created = await rateApi.createRate(payload)
       const mapped = mapBackendRate(created)
       setRoomRates((current) => [...current.filter((r) => String(r.id) !== String(mapped.id)), mapped])
+      setRatesError('')
       return mapped
-    } catch (err) {
-      // Fallback local update if offline
-      const fallback = createManagedRate(data, { id: makeId('room-rate') })
-      setRoomRates((current) => [...current, fallback])
-      throw err
+    } catch (cause) {
+      setRatesError(cause.message || 'Rate could not be saved.')
+      throw cause
     }
   }, [])
 
   const updateRoomRate = useCallback(async (id, updates) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      const baseNightlyRate = updates.amount != null ? Number(updates.amount) : (updates.baseNightlyRate != null ? Number(updates.baseNightlyRate) : undefined)
-      const weekendNightlyRate = updates.weekendAmount != null ? Number(updates.weekendAmount) : (updates.weekendNightlyRate != null ? Number(updates.weekendNightlyRate) : baseNightlyRate)
+    if (!isBackendId) throw new Error('This rate is not stored by the backend and cannot be updated.')
+    {
+      const pricingMethod = updates.rateType === 'BASE' ? 'SET_PRICE' : (updates.pricingMethod || 'SET_PRICE')
+      const setsFixedPrice = pricingMethod === 'SET_PRICE'
+      const baseNightlyRate = setsFixedPrice
+        ? (updates.amount != null ? Number(updates.amount) : (updates.baseNightlyRate != null ? Number(updates.baseNightlyRate) : undefined))
+        : null
+      const weekendNightlyRate = setsFixedPrice
+        ? (updates.weekendAmount != null ? Number(updates.weekendAmount) : (updates.weekendNightlyRate != null ? Number(updates.weekendNightlyRate) : baseNightlyRate))
+        : null
       const applicableDaysStr = Array.isArray(updates.applicableDays) ? updates.applicableDays.join(',') : (updates.applicableDays || null)
 
       const payload = {
         ratePlanName: updates.name?.trim() || updates.ratePlanName?.trim(),
         ratePlanCode: updates.ratePlanCode?.trim(),
         rateType: updates.rateType,
-        pricingMethod: updates.pricingMethod,
+        pricingMethod,
+        pricingValue: setsFixedPrice ? null : Number(updates.value || 0),
+        changeType: updates.changeType || 'PERCENTAGE',
         baseNightlyRate,
         weekendNightlyRate,
         validFrom: updates.validFrom || null,
@@ -154,54 +172,47 @@ export function RatesProvider({ children }) {
         const mapped = mapBackendRate(saved)
         setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? mapped : item))
         return mapped
-      } catch (err) {
-        setRoomRates((current) => current.map((record) => String(record.id) === String(id) ? { ...record, ...updates, updatedAt: timestamp() } : record))
-        throw err
+      } catch (cause) {
+        setRatesError(cause.message || 'Rate could not be updated.')
+        throw cause
       }
-    } else {
-      setRoomRates((current) => current.map((record) => String(record.id) === String(id) ? { ...record, ...updates, updatedAt: timestamp() } : record))
     }
   }, [])
 
   const activateRoomRate = useCallback(async (id) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      try {
-        const updated = await rateApi.updateRateStatus(id, 'ACTIVE')
-        const mapped = mapBackendRate(updated)
-        setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? mapped : item))
-        return mapped
-      } catch (err) {
-        setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? { ...item, status: 'ACTIVE', updatedAt: timestamp() } : item))
-        throw err
-      }
-    } else {
-      setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? { ...item, status: 'ACTIVE', updatedAt: timestamp() } : item))
+    if (!isBackendId) throw new Error('This rate is not stored by the backend and cannot be activated.')
+    try {
+      const updated = await rateApi.updateRateStatus(id, 'ACTIVE')
+      const mapped = mapBackendRate(updated)
+      setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? mapped : item))
+      setRatesError('')
+      return mapped
+    } catch (cause) {
+      setRatesError(cause.message || 'Rate could not be activated.')
+      throw cause
     }
   }, [])
 
   const deactivateRoomRate = useCallback(async (id) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      try {
-        const updated = await rateApi.updateRateStatus(id, 'INACTIVE')
-        const mapped = mapBackendRate(updated)
-        setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? mapped : item))
-        return mapped
-      } catch (err) {
-        setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? { ...item, status: 'INACTIVE', updatedAt: timestamp() } : item))
-        throw err
-      }
-    } else {
-      setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? { ...item, status: 'INACTIVE', updatedAt: timestamp() } : item))
+    if (!isBackendId) throw new Error('This rate is not stored by the backend and cannot be deactivated.')
+    try {
+      const updated = await rateApi.updateRateStatus(id, 'INACTIVE')
+      const mapped = mapBackendRate(updated)
+      setRoomRates((current) => current.map((item) => String(item.id) === String(id) ? mapped : item))
+      setRatesError('')
+      return mapped
+    } catch (cause) {
+      setRatesError(cause.message || 'Rate could not be deactivated.')
+      throw cause
     }
   }, [])
 
   const deleteRoomRate = useCallback(async (id) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      await rateApi.deleteRate(id)
-    }
+    if (!isBackendId) throw new Error('This rate is not stored by the backend and cannot be deleted.')
+    await rateApi.deleteRate(id)
     setRoomRates((current) => current.filter((item) => String(item.id) !== String(id)))
   }, [])
 
@@ -221,10 +232,10 @@ export function RatesProvider({ children }) {
   const getHotelStartingRate = useCallback((hotelId, date = new Date()) => rooms.filter((room) => String(room.hotelId) === String(hotelId) && room.status === 'ACTIVE').map((room) => getCurrentRoomRate(room.id, date)).filter(Boolean).sort((a, b) => Number(a.amount) - Number(b.amount))[0] || null, [rooms, getCurrentRoomRate])
 
   const value = useMemo(() => ({
-    hotelRates, roomRates, ratesLoading, refreshRates, getRatesForHotel, getRatesByRoomId, getCurrentHotelRate, getCurrentRoomRate, getHotelStartingRate,
+    hotelRates, roomRates, ratesLoading: ratesLoading || hotelRateStore.loading, ratesError: [ratesError, hotelRateStore.error].filter(Boolean).join(' '), refreshRates, getRatesForHotel, getRatesByRoomId, getCurrentHotelRate, getCurrentRoomRate, getHotelStartingRate,
     addHotelRate, updateHotelRate, activateHotelRate: (id) => updateHotelRate(id, { status: 'ACTIVE' }), deactivateHotelRate: (id) => updateHotelRate(id, { status: 'INACTIVE' }),
     addRoomRate, updateRoomRate, activateRoomRate, deactivateRoomRate, deleteRoomRate,
-  }), [hotelRates, roomRates, ratesLoading, refreshRates, getRatesForHotel, getRatesByRoomId, getCurrentHotelRate, getCurrentRoomRate, getHotelStartingRate, addHotelRate, updateHotelRate, addRoomRate, updateRoomRate, activateRoomRate, deactivateRoomRate, deleteRoomRate])
+  }), [hotelRates, roomRates, ratesLoading, hotelRateStore.loading, hotelRateStore.error, ratesError, refreshRates, getRatesForHotel, getRatesByRoomId, getCurrentHotelRate, getCurrentRoomRate, getHotelStartingRate, addHotelRate, updateHotelRate, addRoomRate, updateRoomRate, activateRoomRate, deactivateRoomRate, deleteRoomRate])
 
   return <RatesContext.Provider value={value}>{children}</RatesContext.Provider>
 }

@@ -41,10 +41,16 @@ const dateRange = (offer) => `${formatOfferDate(offer.stayStartDate || offer.val
 
 export default function ManageOffers() {
   const { id } = useParams(); const { pathname } = useLocation(); const [params] = useSearchParams(); const navigate = useNavigate()
+  const { offersError } = usePropertyContent()
   const mode = locationMode(pathname, id); const hotelId = params.get('hotelId') || ''
-  if (mode === 'new' || mode === 'edit') return <OfferEditor offerId={mode === 'edit' ? id : null} hotelId={hotelId} requestedStep={params.get('step')} />
-  if (mode === 'details') return <OfferManagementDetails offerId={id} hotelId={hotelId} />
-  return <OffersList hotelId={hotelId} onContext={(value) => navigate(`/management/offers${value ? `?hotelId=${value}` : ''}`)} />
+  let page
+  if (mode === 'new' || mode === 'edit') page = <OfferEditor offerId={mode === 'edit' ? id : null} hotelId={hotelId} requestedStep={params.get('step')} />
+  else if (mode === 'details') page = <OfferManagementDetails offerId={id} hotelId={hotelId} />
+  else page = <OffersList hotelId={hotelId} onContext={(value) => navigate(`/management/offers${value ? `?hotelId=${value}` : ''}`)} />
+  return <>
+    {offersError && <p role="alert">{offersError}</p>}
+    {page}
+  </>
 }
 
 function locationMode(pathname, id) {
@@ -54,7 +60,7 @@ function locationMode(pathname, id) {
 }
 
 function OffersList({ hotelId, onContext }) {
-  const navigate = useNavigate(); const { hotels, publicHotels } = useHotels(); const { rooms, physicalRooms } = useRooms(); const { roomRates, getCurrentRoomRate } = useRates(); const { offers } = usePropertyContent()
+  const navigate = useNavigate(); const { hotels, publicHotels } = useHotels(); const { rooms, physicalRooms } = useRooms(); const { roomRates, getCurrentRoomRate } = useRates(); const { offers, offersError, offersLoading } = usePropertyContent()
   const [search, setSearch] = useState(''); const [state, setState] = useState('ALL'); const [target, setTarget] = useState('ALL'); const [dateFilter, setDateFilter] = useState('ALL'); const [sort, setSort] = useState('STATE')
   const contextHotel = hotels.find((hotel) => String(hotel.id) === String(hotelId))
   const decorated = useMemo(() => offers.map((offer) => ({ offer, state: getOfferDisplayState(offer), coverage: getOfferCoverageSummary(offer, hotels, rooms, roomRates, getCurrentRoomRate), publicStatus: getCustomerCoverageStatus(offer, hotels, publicHotels, rooms, getCurrentRoomRate, physicalRooms) })), [offers, hotels, publicHotels, rooms, physicalRooms, roomRates, getCurrentRoomRate])
@@ -69,10 +75,11 @@ function OffersList({ hotelId, onContext }) {
   const clear = () => { setSearch(''); setState('ALL'); setTarget('ALL'); setDateFilter('ALL'); setSort('STATE') }
   return <section className="manage-offers-page">
     <PageHeader eyebrow="Promotions" title="Offers & Promotions" description="Create flexible, reservation-aware promotions without changing your configured room rates." action={<Link className="offers-primary-button" to={`/management/offers/new${hotelId ? `?hotelId=${hotelId}` : ''}`}><Plus size={18}/>Create Offer</Link>} />
+    {offersLoading && <p role="status">Loading Offers…</p>}
     <div className="offer-summary-grid">{[['ACTIVE','Active'],['SCHEDULED','Scheduled'],['DRAFT','Draft'],['INACTIVE','Inactive'],['EXPIRED','Expired']].map(([key,label])=><article key={key}><span>{label}</span><strong>{counts[key]}</strong><small>{key === 'ACTIVE' ? 'Available to eligible stays' : key === 'SCHEDULED' ? 'Starts in the future' : key === 'DRAFT' ? 'Not customer-visible' : key === 'EXPIRED' ? 'Retained in history' : 'Paused from new bookings'}</small></article>)}</div>
     <section className="offer-context-panel">{contextHotel && <img src={getHotelMainImage(contextHotel)} alt=""/>}<ManagementSelect label="Hotel context" value={hotelId} searchable options={[{ value:'', label:'All Hotels overview', description:'Review the full promotions portfolio' }, ...hotels.map((hotel)=>({value:String(hotel.id),label:hotel.name,description:`${hotel.destination || 'Destination pending'} · ${publicHotels.some((item)=>String(item.id)===String(hotel.id))?'Public ready':hotel.setupStatus==='COMPLETE'?'Not published':'Setup incomplete'}`}))]} onChange={onContext}/>{contextHotel && <Link to={`/management/hotels/${contextHotel.id}/setup?tab=offers`}><ArrowLeft size={16}/>Back to {contextHotel.name}</Link>}</section>
     <section className="offer-filter-panel" aria-label="Offer filters"><label className="offer-search"><span>Search Offers</span><div><Search size={17}/><input value={search} onChange={(event)=>setSearch(event.target.value)} placeholder="Search by title or description"/></div></label><ManagementSelect label="Offer state" value={state} options={['ALL','ACTIVE','SCHEDULED','DRAFT','INACTIVE','EXPIRED'].map((value)=>({value,label:value === 'ALL' ? 'All states' : value}))} onChange={setState}/><ManagementSelect label="Target type" value={target} options={[{value:'ALL',label:'All target types'},{value:'HOTEL',label:'Entire Hotels'},{value:'CATEGORY',label:'Room Categories'},{value:'ROOM',label:'Specific Room Types'}]} onChange={setTarget}/><ManagementSelect label="Stay validity" value={dateFilter} options={[{value:'ALL',label:'All dates'},{value:'CURRENT',label:'Valid today'},{value:'FUTURE',label:'Future stays'}]} onChange={setDateFilter}/><ManagementSelect label="Sort" value={sort} options={[{value:'STATE',label:'Recommended order'},{value:'UPDATED',label:'Recently updated'},{value:'START',label:'Start date'},{value:'DISCOUNT',label:'Discount'}]} onChange={setSort}/><button className="offers-clear-button" type="button" onClick={clear}><X size={16}/>Clear</button></section>
-    {visible.length ? <div className="management-offer-list">{visible.map(({ offer, state: offerState, coverage, publicStatus })=><OfferManagementCard key={offer.id} offer={offer} state={offerState} coverage={coverage} publicStatus={publicStatus} hotels={hotels} rooms={rooms} offers={offers} navigate={navigate}/>)}</div> : <EmptyState title="No Offers found." copy="Adjust the filters or create a promotion for your next campaign." action={<Link className="offers-primary-button" to="/management/offers/new"><Plus size={17}/>Create Offer</Link>}/>}
+    {!offersLoading && !offersError && (visible.length ? <div className="management-offer-list">{visible.map(({ offer, state: offerState, coverage, publicStatus })=><OfferManagementCard key={offer.id} offer={offer} state={offerState} coverage={coverage} publicStatus={publicStatus} hotels={hotels} rooms={rooms} offers={offers} navigate={navigate}/>)}</div> : <EmptyState title="No Offers found." copy="Adjust the filters or create a promotion for your next campaign." action={<Link className="offers-primary-button" to="/management/offers/new"><Plus size={17}/>Create Offer</Link>}/>)}
   </section>
 }
 

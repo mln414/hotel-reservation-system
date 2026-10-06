@@ -16,6 +16,7 @@ import { COLLECTION_ICON_OPTIONS, getCollectionIcon } from '../../utils/collecti
 import { getHotelSetupReadiness } from '../../utils/hotelManagement.js'
 import { applyImageFallback, getHotelMainImage } from '../../utils/hotelMedia.js'
 import { getCollectionHotelCount } from '../../utils/stayCollectionDomain.js'
+import { destinationApi } from '../../services/destinationApi.js'
 import './ManageHotels.css'
 
 const emptyFilters = { search: '', destination: '', setup: '', publication: '', propertyType: '', collection: '' }
@@ -32,12 +33,13 @@ const relativeUpdated = (value) => {
 
 export default function ManageHotels() {
   const { user } = useAuth()
+  const isManager = user?.role === 'MANAGER'
   const { hotels, destinations, hotelsLoading, hotelsError, hotelActionError, setHotelPublicationStatus, deleteHotel } = useHotels()
   const { rooms } = useRooms()
   const { roomRates } = useRates()
   const { collections } = useStayCollections()
   const [params, setParams] = useSearchParams()
-  const section = params.get('section') === 'collections' ? 'collections' : 'properties'
+  const section = params.get('section') === 'collections' && isManager ? 'collections' : 'properties'
   const [filters, setFilters] = useState({ ...emptyFilters, setup: params.get('setup') || '' })
   const [statusHotel, setStatusHotel] = useState(null)
   const [publishHotel, setPublishHotel] = useState(null)
@@ -46,7 +48,6 @@ export default function ManageHotels() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [message, setMessage] = useState('')
 
-  const isManager = user?.role === 'MANAGER'
   const propertyTypes = [...new Set(hotels.map((hotel) => hotel.propertyType).filter(Boolean))].sort()
   const filteredHotels = useMemo(() => hotels.filter((hotel) => {
     if (!isManager && user?.assignedHotelId && String(hotel.id) !== String(user.assignedHotelId)) {
@@ -116,7 +117,7 @@ export default function ManageHotels() {
       </header>
       <nav className="hotel-domain-tabs" aria-label="Hotel management sections">
         <button type="button" className={section === 'properties' ? 'active' : ''} onClick={() => openSection('properties')}>Properties</button>
-        <button type="button" className={section === 'collections' ? 'active' : ''} onClick={() => openSection('collections')}>Stay Collections</button>
+        {isManager && <button type="button" className={section === 'collections' ? 'active' : ''} onClick={() => openSection('collections')}>Stay Collections</button>}
       </nav>
 
       {section === 'collections' ? <CollectionsManagement hotels={hotels} /> : <>
@@ -326,12 +327,14 @@ export default function ManageHotels() {
 }
 
 function CollectionsManagement({ hotels }) {
-  const { collections, isDuplicateName, addCollection, updateCollection, deactivateCollection, reactivateCollection, reorderCollections } = useStayCollections()
+  const { collections, loading, error: persistenceError, isDuplicateName, addCollection, updateCollection, deactivateCollection, reactivateCollection, reorderCollections } = useStayCollections()
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyCollection)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [deactivating, setDeactivating] = useState(null)
+  const [coverImageFile, setCoverImageFile] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
   const ordered = [...collections].sort((a, b) => a.displayOrder - b.displayOrder)
 
   const beginEdit = (item) => {
@@ -340,8 +343,14 @@ function CollectionsManagement({ hotels }) {
     setError('')
     document.querySelector('#collection-editor')?.scrollIntoView({ behavior: 'smooth' })
   }
-  const reset = () => { setEditing(null); setForm(emptyCollection); setError('') }
-  const submit = (event) => {
+  const reset = () => {
+    if (coverImageFile && form.coverImage.startsWith('blob:')) URL.revokeObjectURL(form.coverImage)
+    setCoverImageFile(null)
+    setEditing(null)
+    setForm(emptyCollection)
+    setError('')
+  }
+  const submit = async (event) => {
     event.preventDefault()
     if (!form.title.trim()) return setError('Collection Name is required.')
     if (!form.shortDescription.trim()) return setError('Short Description is required.')
@@ -349,14 +358,25 @@ function CollectionsManagement({ hotels }) {
     if (isDuplicateName(form.title, editing)) return setError('An active Collection with this name already exists.')
     const existing = collections.find((item) => String(item.id) === String(editing))
     if (existing?.status === 'ACTIVE' && form.status === 'INACTIVE') { setDeactivating(existing); return setError('Confirm deactivation in the dialog, then save other edits separately.') }
-    if (editing) updateCollection(editing, form); else addCollection(form)
-    setMessage(`Collection ${editing ? 'updated' : 'created'}.`)
-    reset()
+    setIsSaving(true)
+    try {
+      const coverImage = coverImageFile ? (await destinationApi.uploadImage(coverImageFile)).url : form.coverImage
+      const saved = { ...form, coverImage }
+      if (editing) await updateCollection(editing, saved); else await addCollection(saved)
+      setMessage(`Collection ${editing ? 'updated' : 'created'}.`)
+      reset()
+    } catch (cause) {
+      setError(cause.message || 'The collection could not be saved.')
+    } finally {
+      setIsSaving(false)
+    }
   }
   const changeImage = (event) => {
     const file = event.target.files?.[0]
     if (!file) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) return setError('Use a JPG, PNG or WebP Cover Image no larger than 5 MB.')
+    if (coverImageFile && form.coverImage.startsWith('blob:')) URL.revokeObjectURL(form.coverImage)
+    setCoverImageFile(file)
     setForm((current) => ({ ...current, coverImage: URL.createObjectURL(file) }))
     setError('')
   }
@@ -368,6 +388,8 @@ function CollectionsManagement({ hotels }) {
         <button type="button" onClick={() => { reset(); document.querySelector('#collection-editor')?.scrollIntoView({ behavior: 'smooth' }) }}><Plus size={16} />Create Collection</button>
       </div>
       {message && <p className="hotel-workspace-status" role="status">{message}</p>}
+      {loading && <p className="hotel-workspace-status" role="status">Loading collections…</p>}
+      {persistenceError && <p className="property-error" role="alert">{persistenceError}</p>}
       <div className="management-collection-grid">
         {ordered.map((item, index) => {
           const Icon = getCollectionIcon(item.iconKey)
@@ -384,10 +406,10 @@ function CollectionsManagement({ hotels }) {
                 <p>{item.shortDescription}</p>
                 <strong>{hotelCount} {hotelCount === 1 ? 'Hotel' : 'Hotels'} · {item.showOnHome ? 'Shown on Home' : 'Hidden from Home'}</strong>
                 <div>
-                  <button type="button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => reorderCollections(item.id, -1)}><ArrowUp size={14} /></button>
-                  <button type="button" aria-label={`Move ${item.title} down`} disabled={index === ordered.length - 1} onClick={() => reorderCollections(item.id, 1)}><ArrowDown size={14} /></button>
+                  <button type="button" aria-label={`Move ${item.title} up`} disabled={index === 0} onClick={() => reorderCollections(item.id, -1).catch((cause) => setError(cause.message || 'Collection order could not be saved.'))}><ArrowUp size={14} /></button>
+                  <button type="button" aria-label={`Move ${item.title} down`} disabled={index === ordered.length - 1} onClick={() => reorderCollections(item.id, 1).catch((cause) => setError(cause.message || 'Collection order could not be saved.'))}><ArrowDown size={14} /></button>
                   <button type="button" onClick={() => beginEdit(item)}><Pencil size={14} />Edit</button>
-                  <button type="button" onClick={() => item.status === 'ACTIVE' ? setDeactivating(item) : reactivateCollection(item.id)}>{item.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate'}</button>
+                  <button type="button" onClick={() => item.status === 'ACTIVE' ? setDeactivating(item) : reactivateCollection(item.id).then(() => setMessage('Collection reactivated.')).catch((cause) => setError(cause.message || 'Collection status could not be updated.'))}>{item.status === 'ACTIVE' ? 'Deactivate' : 'Reactivate'}</button>
                 </div>
               </div>
             </article>
@@ -424,7 +446,7 @@ function CollectionsManagement({ hotels }) {
         {error && <p className="collection-form-error" role="alert">{error}</p>}
         <div className="collection-form-actions">
           {editing && <button type="button" onClick={reset}>Cancel</button>}
-          <button className="primary" type="submit">{editing ? 'Save Collection' : 'Create Collection'}</button>
+          <button className="primary" type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : editing ? 'Save Collection' : 'Create Collection'}</button>
         </div>
       </form>
       {deactivating && (
@@ -435,7 +457,15 @@ function CollectionsManagement({ hotels }) {
           onClose={() => setDeactivating(null)}
           actions={<>
             <button type="button" onClick={() => setDeactivating(null)}>Cancel</button>
-            <button className="primary" type="button" onClick={() => { deactivateCollection(deactivating.id); setDeactivating(null); setMessage('Collection deactivated. Hotel relationships were retained.') }}>Deactivate Collection</button>
+            <button className="primary" type="button" onClick={async () => {
+              try {
+                await deactivateCollection(deactivating.id)
+                setDeactivating(null)
+                setMessage('Collection deactivated. Hotel relationships were retained.')
+              } catch (cause) {
+                setError(cause.message || 'Collection could not be deactivated.')
+              }
+            }}>Deactivate Collection</button>
           </>}
         />
       )}

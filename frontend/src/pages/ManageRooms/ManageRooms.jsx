@@ -29,6 +29,8 @@ export default function ManageRooms() {
     roomTypes,
     physicalRooms,
     amenities,
+    amenitiesLoading,
+    amenitiesError,
     deactivateRoomType,
     reactivateRoomType,
     deleteRoomType,
@@ -156,7 +158,7 @@ export default function ManageRooms() {
       </nav>
 
       {tab === 'amenities' ? (
-        <AmenitiesPanel amenities={amenities} roomTypes={roomTypes} actions={{ addAmenity, updateAmenity, activateAmenity, deactivateAmenity, reorderAmenity }} notify={notify} />
+        <AmenitiesPanel amenities={amenities} roomTypes={roomTypes} actions={{ addAmenity, updateAmenity, activateAmenity, deactivateAmenity, reorderAmenity }} notify={notify} isManager={isManager} loading={amenitiesLoading} persistenceError={amenitiesError} />
       ) : !hotels.length ? (
         <div className="room-empty room-empty--card">
           <p>No hotels are available for room setup.</p>
@@ -480,7 +482,7 @@ function HotelPickerCard({ hotel, destination, roomTypeCount, onSelect }) {
   )
 }
 
-function AmenitiesPanel({ amenities, roomTypes, actions, notify }) {
+function AmenitiesPanel({ amenities, roomTypes, actions, notify, isManager, loading, persistenceError }) {
   const blank = { name: '', category: '', iconKey: 'sparkles', active: true }
   const [form, setForm] = useState(blank)
   const [editing, setEditing] = useState(null)
@@ -488,39 +490,54 @@ function AmenitiesPanel({ amenities, roomTypes, actions, notify }) {
   const [target, setTarget] = useState(null)
   const ordered = [...amenities].sort((a, b) => Number(a.displayOrder || 0) - Number(b.displayOrder || 0))
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     const name = form.name.trim()
     const duplicate = amenities.some((item) => String(item.id) !== String(editing || '') && item.name.trim().toLowerCase() === name.toLowerCase())
     if (!name) return setError('Amenity name is required.')
     if (duplicate) return setError('An amenity with this name already exists.')
     if (!form.iconKey) return setError('Choose an icon.')
-    if (editing) {
-      actions.updateAmenity(editing, { ...form, name })
-      notify(`${name} was updated.`, 'success')
-    } else {
-      actions.addAmenity({ ...form, name })
-      notify(`${name} was added.`, 'success')
+    try {
+      if (editing) {
+        await actions.updateAmenity(editing, { ...form, name })
+        notify(`${name} was updated.`, 'success')
+      } else {
+        await actions.addAmenity({ ...form, name })
+        notify(`${name} was added.`, 'success')
+      }
+      setForm(blank)
+      setEditing(null)
+      setError('')
+    } catch (cause) {
+      setError(cause.message || 'The amenity could not be saved.')
     }
-    setForm(blank)
-    setEditing(null)
-    setError('')
   }
 
-  const toggle = () => {
-    if (target.active) {
-      actions.deactivateAmenity(target.id)
-      notify(`${target.name} is inactive. Existing Room Type links were preserved.`, 'success')
-    } else {
-      actions.activateAmenity(target.id)
-      notify(`${target.name} is active again.`, 'success')
+  const toggle = async () => {
+    try {
+      if (target.active) {
+        await actions.deactivateAmenity(target.id)
+        notify(`${target.name} is inactive. Existing Room Type links were preserved.`, 'success')
+      } else {
+        await actions.activateAmenity(target.id)
+        notify(`${target.name} is active again.`, 'success')
+      }
+      setTarget(null)
+    } catch (cause) {
+      setError(cause.message || 'Amenity status could not be changed.')
     }
-    setTarget(null)
+  }
+  const moveAmenity = async (id, direction) => {
+    try {
+      await actions.reorderAmenity(id, direction)
+    } catch (cause) {
+      setError(cause.message || 'Amenity order could not be saved.')
+    }
   }
 
   return (
     <div className="amenity-layout">
-      <form className="amenity-form" onSubmit={submit}>
+      {isManager ? <form className="amenity-form" onSubmit={submit}>
         <span className="room-eyebrow">Reusable catalogue</span>
         <h2>{editing ? 'Edit Amenity' : 'Add Amenity'}</h2>
         <label>
@@ -541,13 +558,15 @@ function AmenitiesPanel({ amenities, roomTypes, actions, notify }) {
             </button>
           )}
         </div>
-      </form>
+      </form> : <p className="room-error" role="status">Only a manager can edit the shared amenity catalogue.</p>}
       <section className="amenity-list">
         <div>
           <span className="room-eyebrow">Display order</span>
           <h2>Room Amenities</h2>
           <p>Inactive amenities remain attached wherever they were already selected.</p>
         </div>
+        {loading && <p role="status">Loading amenities…</p>}
+        {persistenceError && <p className="room-error" role="alert">{persistenceError}</p>}
         {ordered.length ? (
           ordered.map((item, index) => {
             const linkedCount = roomTypes.filter((room) => (room.amenityIds || []).includes(item.id)).length
@@ -558,14 +577,16 @@ function AmenitiesPanel({ amenities, roomTypes, actions, notify }) {
                   <strong>{item.name}</strong>
                   <small>{item.category || 'Uncategorised'} · {item.active ? 'Active' : 'Inactive'} · {linkedCount} linked Room Type{linkedCount === 1 ? '' : 's'}</small>
                 </div>
-                <div className="amenity-order">
-                  <button type="button" disabled={index === 0} aria-label={`Move ${item.name} up`} onClick={() => actions.reorderAmenity(item.id, -1)}><ArrowUp size={14} /></button>
-                  <button type="button" disabled={index === ordered.length - 1} aria-label={`Move ${item.name} down`} onClick={() => actions.reorderAmenity(item.id, 1)}><ArrowDown size={14} /></button>
-                </div>
-                <div>
-                  <button type="button" onClick={() => { setEditing(item.id); setForm({ name: item.name, category: item.category || '', iconKey: item.iconKey || 'sparkles', active: item.active }); setError('') }}>Edit</button>
-                  <button type="button" className={item.active ? 'room-action-danger' : ''} onClick={() => setTarget(item)}>{item.active ? 'Deactivate' : 'Reactivate'}</button>
-                </div>
+                {isManager && <>
+                  <div className="amenity-order">
+                    <button type="button" disabled={index === 0} aria-label={`Move ${item.name} up`} onClick={() => moveAmenity(item.id, -1)}><ArrowUp size={14} /></button>
+                    <button type="button" disabled={index === ordered.length - 1} aria-label={`Move ${item.name} down`} onClick={() => moveAmenity(item.id, 1)}><ArrowDown size={14} /></button>
+                  </div>
+                  <div>
+                    <button type="button" onClick={() => { setEditing(item.id); setForm({ name: item.name, category: item.category || '', iconKey: item.iconKey || 'sparkles', active: item.active }); setError('') }}>Edit</button>
+                    <button type="button" className={item.active ? 'room-action-danger' : ''} onClick={() => setTarget(item)}>{item.active ? 'Deactivate' : 'Reactivate'}</button>
+                  </div>
+                </>}
               </article>
             )
           })

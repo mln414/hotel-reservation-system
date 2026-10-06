@@ -52,6 +52,10 @@ public class RoomRateMapper {
         dto.setRatePlanName(entity.getRatePlanName());
         dto.setRatePlanCode(entity.getRatePlanCode());
         dto.setBaseNightlyRate(toDouble(entity.getBaseNightlyRate()));
+        dto.setPricingValue(toDouble(entity.getPricingValue()));
+        dto.setPricingMethod(entity.getPricingMethod());
+        dto.setChangeType(entity.getChangeType());
+        dto.setRateType(entity.getRateType());
         dto.setWeekendNightlyRate(toDouble(entity.getWeekendNightlyRate()));
         dto.setMealPlan(entity.getMealPlan());
         dto.setCancellationPolicy(entity.getCancellationPolicy());

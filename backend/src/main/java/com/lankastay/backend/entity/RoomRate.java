@@ -30,8 +30,14 @@ public class RoomRate {
     @Column(name = "pricing_method", nullable = false, length = 50)
     private String pricingMethod = "SET_PRICE";
 
-    @Column(name = "base_nightly_rate", nullable = false, precision = 14, scale = 2)
+    @Column(name = "base_nightly_rate", precision = 14, scale = 2)
     private BigDecimal baseNightlyRate;
+
+    @Column(name = "pricing_value", precision = 14, scale = 2)
+    private BigDecimal pricingValue;
+
+    @Column(name = "change_type", length = 30)
+    private String changeType = "PERCENTAGE";
 
     @Column(name = "weekend_nightly_rate", precision = 14, scale = 2)
     private BigDecimal weekendNightlyRate;
@@ -135,6 +141,12 @@ public class RoomRate {
 
     public BigDecimal getBaseNightlyRate() { return baseNightlyRate; }
     public void setBaseNightlyRate(BigDecimal baseNightlyRate) { this.baseNightlyRate = baseNightlyRate; }
+
+    public BigDecimal getPricingValue() { return pricingValue; }
+    public void setPricingValue(BigDecimal pricingValue) { this.pricingValue = pricingValue; }
+
+    public String getChangeType() { return changeType; }
+    public void setChangeType(String changeType) { this.changeType = changeType; }
 
     public BigDecimal getWeekendNightlyRate() { return weekendNightlyRate; }
     public void setWeekendNightlyRate(BigDecimal weekendNightlyRate) { this.weekendNightlyRate = weekendNightlyRate; }

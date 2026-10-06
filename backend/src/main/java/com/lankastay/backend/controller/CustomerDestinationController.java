@@ -34,12 +34,6 @@ public class CustomerDestinationController {
      */
     @GetMapping("/{identifier}")
     public ResponseEntity<DestinationResponse> getDestinationByIdOrSlug(@PathVariable String identifier) {
-        try {
-            Long id = Long.parseLong(identifier);
-            DestinationResponse destination = destinationService.getDestinationById(id);
-            return ResponseEntity.ok(destination);
-        } catch (NumberFormatException ignored) {}
-
         DestinationResponse destination = destinationService.getActiveCustomerDestinationBySlugOrId(identifier);
         return ResponseEntity.ok(destination);
     }

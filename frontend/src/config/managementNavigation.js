@@ -13,7 +13,7 @@ export const managementNavigation = [
   { key: 'rates', label: 'Rates', path: '/management/rates', icon: 'rates', roles: [manager, hotelStaff] },
   { key: 'offers', label: 'Offers', path: '/management/offers', icon: 'offers', roles: [manager, hotelStaff] },
   { key: 'reviews', label: 'Reviews', path: '/management/reviews', icon: 'reviews', roles: [manager] },
-  { key: 'websiteContent', label: 'Website Content', path: '/management/website-content', icon: 'websiteContent', roles: [manager, hotelStaff] },
+  { key: 'websiteContent', label: 'Website Content', path: '/management/website-content', icon: 'websiteContent', roles: [manager] },
   { key: 'staff', label: 'Staff Management', path: '/management/staff', icon: 'staff', roles: [manager] },
   { key: 'profile', label: 'My Profile', path: '/management/profile', icon: 'profile', roles: [manager, hotelStaff, receptionist] },
 ]

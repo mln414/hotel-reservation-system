@@ -6,8 +6,10 @@ import { moveItemById } from '../utils/roomDomain.js'
 import { resolveCatalogImageUrl } from '../utils/hotelMedia.js'
 import { roomApi } from '../services/roomApi.js'
 import useAuth from './useAuth.js'
+import usePersistentContent from './usePersistentContent.js'
 
 const amenityIdByName = new Map(initialAmenities.map((amenity) => [amenity.name.toLowerCase(), amenity.id]))
+const initialAmenityRecords = initialAmenities.map((amenity, displayOrder) => ({ ...amenity, displayOrder }))
 
 function parseAmenities(raw) {
   if (Array.isArray(raw)) return raw
@@ -81,7 +83,9 @@ export function RoomsProvider({ children }) {
   const [roomTypes, setRoomTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [physicalRooms, setPhysicalRooms] = useState([])
-  const [amenities, setAmenities] = useState(() => initialAmenities.map((amenity, displayOrder) => ({ ...amenity, displayOrder })))
+  const amenityStore = usePersistentContent('ROOM_AMENITY', initialAmenityRecords, user)
+  const amenities = amenityStore.items
+  const { create: createAmenity, update: updateAmenityEntry, updateMany: updateAmenities } = amenityStore
   const [roomTypeDrafts, setRoomTypeDrafts] = useState({})
 
   const loadRoomsFromBackend = useCallback(async () => {
@@ -245,20 +249,31 @@ export function RoomsProvider({ children }) {
     } catch (error) { return { error: error.message } }
   }, [loadRoomsFromBackend])
 
-  const addAmenity = useCallback((data) => {
-    const amenity = { ...data, id: `amenity-${Date.now()}`, name: data.name.trim(), active: data.active !== false, displayOrder: amenities.length }
-    setAmenities((current) => [...current, amenity])
-    return amenity
-  }, [amenities.length])
-  const updateAmenity = useCallback((id, updates) => setAmenities((current) => current.map((amenity) => amenity.id === id ? { ...amenity, ...updates, ...(updates.name ? { name: updates.name.trim() } : {}) } : amenity)), [])
+  const addAmenity = useCallback((data) => createAmenity({
+    ...data,
+    id: `amenity-${Date.now()}`,
+    name: data.name.trim(),
+    active: data.active !== false,
+    status: data.active === false ? 'INACTIVE' : 'ACTIVE',
+    displayOrder: amenities.length,
+  }), [createAmenity, amenities.length])
+  const updateAmenity = useCallback((id, updates) => updateAmenityEntry(id, {
+    ...updates,
+    ...(updates.name ? { name: updates.name.trim() } : {}),
+    ...(updates.active != null ? { status: updates.active ? 'ACTIVE' : 'INACTIVE' } : {}),
+  }), [updateAmenityEntry])
   const setAmenityActive = useCallback((id, active) => updateAmenity(id, { active }), [updateAmenity])
-  const reorderAmenity = useCallback((id, direction) => setAmenities((current) => moveItemById(current, id, direction)), [])
+  const reorderAmenity = useCallback(async (id, direction) => {
+    const ordered = moveItemById(amenities, id, direction)
+    if (ordered === amenities) return
+    await updateAmenities(ordered.map((item, displayOrder) => ({ ...item, displayOrder })))
+  }, [amenities, updateAmenities])
   const saveRoomTypeDraft = useCallback((key, draft) => setRoomTypeDrafts((current) => ({ ...current, [String(key)]: draft })), [])
   const clearRoomTypeDraft = useCallback((key) => setRoomTypeDrafts((current) => { const next = { ...current }; delete next[String(key)]; return next }), [])
 
   const rooms = useMemo(() => roomTypes.map((room) => syncLegacyFields(room, amenities)), [roomTypes, amenities])
   const value = useMemo(() => ({
-    loading,
+    loading, amenitiesLoading: amenityStore.loading, amenitiesError: amenityStore.error,
     rooms, roomTypes: rooms, physicalRooms, amenities,
     refreshRooms: loadRoomsFromBackend,
     getRoomById, getRoomsByHotelId, getActiveRoomTypesByHotelId, getPhysicalRoomsByTypeId,
@@ -269,7 +284,7 @@ export function RoomsProvider({ children }) {
     addPhysicalRoom, addPhysicalRooms, updatePhysicalRoom, deletePhysicalRoom, updatePhysicalRoomStatus: (id, status) => updatePhysicalRoom(id, { baseOperationalStatus: status }), updatePhysicalRoomsStatus, updateRoomCondition, scheduleOperationalBlock, removeOperationalBlock,
     addAmenity, updateAmenity, activateAmenity: (id) => setAmenityActive(id, true), deactivateAmenity: (id) => setAmenityActive(id, false), reorderAmenity,
     roomTypeDrafts, saveRoomTypeDraft, clearRoomTypeDraft,
-  }), [loading, rooms, physicalRooms, amenities, loadRoomsFromBackend, getRoomById, getRoomsByHotelId, getActiveRoomTypesByHotelId, getPhysicalRoomsByTypeId, addRoomType, updateRoomType, deleteRoomType, setRoomTypeStatus, addPhysicalRoom, addPhysicalRooms, updatePhysicalRoom, deletePhysicalRoom, updatePhysicalRoomsStatus, updateRoomCondition, scheduleOperationalBlock, removeOperationalBlock, addAmenity, updateAmenity, setAmenityActive, reorderAmenity, roomTypeDrafts, saveRoomTypeDraft, clearRoomTypeDraft])
+  }), [loading, amenityStore.loading, amenityStore.error, rooms, physicalRooms, amenities, loadRoomsFromBackend, getRoomById, getRoomsByHotelId, getActiveRoomTypesByHotelId, getPhysicalRoomsByTypeId, addRoomType, updateRoomType, deleteRoomType, setRoomTypeStatus, addPhysicalRoom, addPhysicalRooms, updatePhysicalRoom, deletePhysicalRoom, updatePhysicalRoomsStatus, updateRoomCondition, scheduleOperationalBlock, removeOperationalBlock, addAmenity, updateAmenity, setAmenityActive, reorderAmenity, roomTypeDrafts, saveRoomTypeDraft, clearRoomTypeDraft])
 
   return <RoomsContext.Provider value={value}>{children}</RoomsContext.Provider>
 }

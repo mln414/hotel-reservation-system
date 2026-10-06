@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import useAuth from './useAuth.js'
+import usePersistentContent from './usePersistentContent.js'
 import initialDining from '../data/dining.js'
 import initialExperiences from '../data/experiences.js'
 import initialFacilities from '../data/hotelFacilities.js'
@@ -6,7 +8,7 @@ import initialOffers from '../data/offers.js'
 import initialTravelStories from '../data/travelStories.js'
 import PropertyContentContext from './propertyContentContext.js'
 import { slugify } from '../utils/contentDomain.js'
-import { buildOfferDuplicate, createUniqueOfferSlug } from '../utils/offerManagement.js'
+import { buildOfferDuplicate } from '../utils/offerManagement.js'
 import { resolveCatalogImageUrl } from '../utils/hotelMedia.js'
 import { offerApi } from '../services/offerApi.js'
 
@@ -23,6 +25,8 @@ const normalizeExperience = (item, index = 0) => {
   return { ...item, id: item.id, slug: item.slug || slugify(title), contentType, name: title, title, category: categoryKeys[item.category] || item.category || 'CULTURE_HERITAGE', destinationId: item.destinationId || (String(item.location || '').includes('Yala') ? 6 : item.hotelId === 302 ? 3 : null), shortDescription: item.shortDescription || item.summary || '', fullDescription: item.fullDescription || item.description || storyText(item.content), description: item.fullDescription || item.description || storyText(item.content), heroImage: item.heroImage || item.image, image: item.heroImage || item.image, galleryImages: item.galleryImages || [], suitableFor: item.suitableFor || [], highlights: item.highlights || [], relatedHotelIds: [...new Set(item.relatedHotelIds || (item.hotelId ? [item.hotelId] : []))], featuredOnHome: item.featuredOnHome ?? item.featured ?? false, featured: item.featuredOnHome ?? item.featured ?? false, displayOrder: item.displayOrder ?? index + 1, status, active: status === 'ACTIVE', bestTime: item.bestTime || item.availabilityNote || '', locationText: item.locationText || item.location || '', createdAt: item.createdAt || item.publishedDate || now(), updatedAt: item.updatedAt || item.publishedDate || now() }
 }
 const normalizeStory = (item, index) => normalizeExperience({ ...item, id: `story-${item.id}`, contentType: 'TRAVEL_STORY', category: 'CULTURE_HERITAGE', shortDescription: item.summary, fullDescription: storyText(item.content), heroImage: item.image, galleryImages: [], status: item.active ? 'ACTIVE' : 'INACTIVE', featuredOnHome: item.featured }, index)
+const initialDiningRecords = initialDining.map(normalizeDining)
+const initialExperienceRecords = [...initialExperiences.map(normalizeExperience), ...initialTravelStories.map(normalizeStory)]
 const normalizeOffer = (item) => {
   const startDate = item.stayStartDate || item.startDate || item.validFrom || ''
   const endDate = item.stayEndDate || item.endDate || item.validTo || ''
@@ -80,46 +84,69 @@ const normalizeOffer = (item) => {
 }
 
 export function PropertyContentProvider({ children }) {
-  const [facilities, setFacilities] = useState(initialFacilities)
-  const [diningItems, setDiningItems] = useState(() => initialDining.map(normalizeDining))
-  const [experiences, setExperiences] = useState(() => [...initialExperiences.map(normalizeExperience), ...initialTravelStories.map(normalizeStory)])
+  const { user } = useAuth()
+  const facilityStore = usePersistentContent('HOTEL_FACILITY', initialFacilities, user)
+  const diningStore = usePersistentContent('DINING', initialDiningRecords, user)
+  const experienceStore = usePersistentContent('EXPERIENCE_CONTENT', initialExperienceRecords, user)
+  const { create: createFacility, update: updateFacilityEntry } = facilityStore
+  const { create: createDining, update: updateDiningEntry } = diningStore
+  const { create: createExperience, update: updateExperienceEntry } = experienceStore
+  const facilities = facilityStore.items
+  const diningItems = diningStore.items.map(normalizeDining)
+  const experiences = experienceStore.items.map(normalizeExperience)
   const [offers, setOffers] = useState(() => initialOffers.map(normalizeOffer))
   const [offerDrafts, setOfferDrafts] = useState({})
-  const [offersLoading, setOffersLoading] = useState(false)
+  const [offersLoading, setOffersLoading] = useState(true)
+  const [offersError, setOffersError] = useState('')
 
   const refreshOffers = useCallback(async () => {
     setOffersLoading(true)
     try {
-      let records
-      try {
-        records = await offerApi.listOffers()
-      } catch {
-        records = await offerApi.listPublicOffers()
-      }
-      if (Array.isArray(records) && records.length > 0) {
-        setOffers(records.map(normalizeOffer))
-      }
-    } catch {
-      // Retain fallback initial offers
+      const records = user ? await offerApi.listOffers() : await offerApi.listPublicOffers()
+      setOffers(records.map(normalizeOffer))
+      setOffersError('')
+      return records
+    } catch (cause) {
+      setOffers([])
+      setOffersError(cause.message || 'Offers could not be loaded from the server.')
+      throw cause
     } finally {
       setOffersLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
-    refreshOffers()
+    refreshOffers().catch(() => {})
   }, [refreshOffers])
 
-  const addFacility = useCallback((data) => { const item = { ...data, id: createId('facility'), name: data.name.trim(), active: data.active !== false, createdAt: now(), updatedAt: now() }; setFacilities((current) => [...current, item]); return item }, [])
-  const updateFacility = useCallback((id, updates) => setFacilities((current) => current.map((item) => String(item.id) === String(id) ? { ...item, ...updates, updatedAt: now() } : item)), [])
+  const addFacility = useCallback((data) => createFacility({ ...data, id: createId('facility'), name: data.name.trim(), active: data.active !== false, createdAt: now(), updatedAt: now() }), [createFacility])
+  const updateFacility = useCallback((id, updates) => updateFacilityEntry(id, {
+    ...updates,
+    ...(updates.name ? { name: updates.name.trim() } : {}),
+    ...(updates.active != null ? { status: updates.active ? 'ACTIVE' : 'INACTIVE' } : {}),
+  }), [updateFacilityEntry])
   const setFacilityActive = useCallback((id, active) => updateFacility(id, { active }), [updateFacility])
 
-  const addDining = useCallback((data) => { const item = normalizeDining({ ...data, id: createId('dining'), createdAt: now(), updatedAt: now() }); setDiningItems((current) => [...current, item]); return item }, [])
-  const updateDining = useCallback((id, updates) => setDiningItems((current) => current.map((item) => String(item.id) === String(id) ? normalizeDining({ ...item, ...updates, updatedAt: now() }) : item)), [])
+  const addDining = useCallback((data) => createDining(normalizeDining({ ...data, id: createId('dining'), createdAt: now(), updatedAt: now() })), [createDining])
+  const updateDining = useCallback((id, updates) => {
+    const existing = diningItems.find((item) => String(item.id) === String(id))
+    if (!existing) throw new Error('Dining item was not found.')
+    return updateDiningEntry(id, normalizeDining({ ...existing, ...updates, updatedAt: now() }))
+  }, [diningItems, updateDiningEntry])
   const setDiningStatus = useCallback((id, status) => updateDining(id, { status, active: status === 'ACTIVE' }), [updateDining])
 
-  const addExperience = useCallback((data) => { const base = slugify(data.slug || data.title) || `content-${Date.now()}`; let slug = base; let suffix = 2; while (experiences.some((item) => item.slug === slug)) slug = `${base}-${suffix++}`; const created = normalizeExperience({ ...data, slug, id: createId('experience'), createdAt: now(), updatedAt: now() }, experiences.length); setExperiences((current) => [...current, created]); return created }, [experiences])
-  const updateExperience = useCallback((id, updates) => setExperiences((current) => current.map((item) => String(item.id) === String(id) ? normalizeExperience({ ...item, ...updates, updatedAt: now() }) : item)), [])
+  const addExperience = useCallback((data) => {
+    const base = slugify(data.slug || data.title) || `content-${Date.now()}`
+    let slug = base
+    let suffix = 2
+    while (experiences.some((item) => item.slug === slug)) slug = `${base}-${suffix++}`
+    return createExperience(normalizeExperience({ ...data, slug, id: createId('experience'), createdAt: now(), updatedAt: now() }, experiences.length))
+  }, [experiences, createExperience])
+  const updateExperience = useCallback((id, updates) => {
+    const existing = experiences.find((item) => String(item.id) === String(id))
+    if (!existing) throw new Error('Experience or travel story was not found.')
+    return updateExperienceEntry(id, normalizeExperience({ ...existing, ...updates, updatedAt: now() }))
+  }, [experiences, updateExperienceEntry])
   const setExperienceStatus = useCallback((id, status) => updateExperience(id, { status, active: status === 'ACTIVE' }), [updateExperience])
 
   const addOffer = useCallback(async (data) => {
@@ -153,15 +180,15 @@ export function PropertyContentProvider({ children }) {
       setOffers((current) => [...current.filter((item) => String(item.id) !== String(normalized.id)), normalized])
       return normalized
     } catch (err) {
-      const local = normalizeOffer({ ...data, id: createId('offer'), createdAt: now(), updatedAt: now() })
-      setOffers((current) => [...current, local])
+      setOffersError(err.message || 'Offer could not be saved.')
       throw err
     }
   }, [])
 
   const updateOffer = useCallback(async (id, updates) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
+    if (!isBackendId) throw new Error('This offer is not stored by the backend and cannot be updated.')
+    {
       const payload = {
         title: updates.title?.trim(),
         shortDescription: updates.shortDescription?.trim(),
@@ -191,36 +218,31 @@ export function PropertyContentProvider({ children }) {
         setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalized : item))
         return normalized
       } catch (err) {
-        setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalizeOffer({ ...item, ...updates, updatedAt: now() }) : item))
+        setOffersError(err.message || 'Offer could not be updated.')
         throw err
       }
-    } else {
-      setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalizeOffer({ ...item, ...updates, updatedAt: now() }) : item))
     }
   }, [])
 
   const setOfferStatus = useCallback(async (id, status) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      try {
-        const saved = await offerApi.updateOfferStatus(id, status)
-        const normalized = normalizeOffer(saved)
-        setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalized : item))
-        return normalized
-      } catch (err) {
-        setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalizeOffer({ ...item, status, active: status === 'ACTIVE', updatedAt: now() }) : item))
-        throw err
-      }
-    } else {
-      setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalizeOffer({ ...item, status, active: status === 'ACTIVE', updatedAt: now() }) : item))
+    if (!isBackendId) throw new Error('This offer is not stored by the backend and cannot be updated.')
+    try {
+      const saved = await offerApi.updateOfferStatus(id, status)
+      const normalized = normalizeOffer(saved)
+      setOffers((current) => current.map((item) => String(item.id) === String(id) ? normalized : item))
+      setOffersError('')
+      return normalized
+    } catch (err) {
+      setOffersError(err.message || 'Offer status could not be updated.')
+      throw err
     }
   }, [])
 
   const deleteOffer = useCallback(async (id) => {
     const isBackendId = Number.isInteger(Number(id)) && Number(id) > 0
-    if (isBackendId) {
-      await offerApi.deleteOffer(id)
-    }
+    if (!isBackendId) throw new Error('This offer is not stored by the backend and cannot be deleted.')
+    await offerApi.deleteOffer(id)
     setOffers((current) => current.filter((item) => String(item.id) !== String(id)))
   }, [])
 
@@ -233,26 +255,22 @@ export function PropertyContentProvider({ children }) {
       status: 'DRAFT',
     })
 
-    try {
-      return await addOffer(duplicateData)
-    } catch {
-      const copy = normalizeOffer(buildOfferDuplicate(source, { id: createId('offer'), slug: createUniqueOfferSlug(`${source.slug || slugify(source.title)}-copy`, offers), createdAt: now() }))
-      setOffers((current) => [...current, copy])
-      return copy
-    }
+    return addOffer(duplicateData)
   }, [offers, addOffer])
 
   const saveOfferDraft = useCallback((key, draft) => setOfferDrafts((current) => ({ ...current, [String(key)]: draft })), [])
   const clearOfferDraft = useCallback((key) => setOfferDrafts((current) => { const next = { ...current }; delete next[String(key)]; return next }), [])
 
   const value = useMemo(() => ({
-    facilities, diningItems, experiences, offers, offerDrafts, offersLoading, refreshOffers,
+    facilities, diningItems, experiences, offers, offerDrafts, offersLoading, offersError, refreshOffers,
+    contentLoading: facilityStore.loading || diningStore.loading || experienceStore.loading,
+    contentError: [facilityStore.error, diningStore.error, experienceStore.error].filter(Boolean).join(' '),
     addFacility, updateFacility, activateFacility: (id) => setFacilityActive(id, true), deactivateFacility: (id) => setFacilityActive(id, false),
     addDining, updateDining, activateDining: (id) => setDiningStatus(id, 'ACTIVE'), deactivateDining: (id) => setDiningStatus(id, 'INACTIVE'),
     addExperience, updateExperience, activateExperience: (id) => setExperienceStatus(id, 'ACTIVE'), deactivateExperience: (id) => setExperienceStatus(id, 'INACTIVE'),
     addOffer, updateOffer, activateOffer: (id) => setOfferStatus(id, 'ACTIVE'), deactivateOffer: (id) => setOfferStatus(id, 'INACTIVE'),
     deleteOffer, duplicateOffer, saveOfferDraft, clearOfferDraft,
-  }), [facilities, diningItems, experiences, offers, offerDrafts, offersLoading, refreshOffers, addFacility, updateFacility, setFacilityActive, addDining, updateDining, setDiningStatus, addExperience, updateExperience, setExperienceStatus, addOffer, updateOffer, setOfferStatus, deleteOffer, duplicateOffer, saveOfferDraft, clearOfferDraft])
+  }), [facilities, diningItems, experiences, offers, offerDrafts, offersLoading, offersError, refreshOffers, facilityStore.loading, diningStore.loading, experienceStore.loading, facilityStore.error, diningStore.error, experienceStore.error, addFacility, updateFacility, setFacilityActive, addDining, updateDining, setDiningStatus, addExperience, updateExperience, setExperienceStatus, addOffer, updateOffer, setOfferStatus, deleteOffer, duplicateOffer, saveOfferDraft, clearOfferDraft])
 
   return <PropertyContentContext.Provider value={value}>{children}</PropertyContentContext.Provider>
 }

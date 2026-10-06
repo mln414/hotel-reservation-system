@@ -24,18 +24,14 @@ public class DestinationCreateRequest {
     private String fullDescription;
     private String category;
 
-    @NotBlank(message = "Province / Region is required")
     private String region;
 
-    @NotBlank(message = "District is required")
     private String district;
 
-    @NotNull(message = "Latitude is required")
     @DecimalMin(value = "-90.0", message = "Latitude must be >= -90.0")
     @DecimalMax(value = "90.0", message = "Latitude must be <= 90.0")
     private Double latitude;
 
-    @NotNull(message = "Longitude is required")
     @DecimalMin(value = "-180.0", message = "Longitude must be >= -180.0")
     @DecimalMax(value = "180.0", message = "Longitude must be <= 180.0")
     private Double longitude;

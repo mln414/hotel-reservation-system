@@ -10,7 +10,7 @@ import { ThemeIcon } from '../../utils/destinationIcons.jsx'
 import './Destinations.css'
 
 export default function Destinations() {
-  const { activeDestinations } = useDestinations()
+  const { activeDestinations, destinationsLoading, destinationsLoadError, loadDestinations } = useDestinations()
   const { publicHotels } = useHotels()
   const [theme, setTheme] = useState('')
   const [searchDraft, setSearchDraft] = useState('')
@@ -61,7 +61,7 @@ export default function Destinations() {
         <div className="destination-result-context" aria-live="polite"><p>{resultLabel}</p>{hasFilters && <button type="button" onClick={reset}><RotateCcw aria-hidden="true" size={15} />Reset</button>}</div>
       </div>
 
-      {visibleDestinations.length > 0 ? <div className="destination-grid">{visibleDestinations.map((card) => <DestinationCard data={card} key={card.destination.id} />)}</div> : <div className="destination-customer-empty" role="status">
+      {destinationsLoadError ? <div className="destination-customer-empty" role="alert"><h3>Destinations could not be loaded.</h3><p>{destinationsLoadError}</p><button type="button" onClick={() => loadDestinations().catch(() => {})}>Retry</button></div> : destinationsLoading ? <p role="status">Loading destinations…</p> : visibleDestinations.length > 0 ? <div className="destination-grid">{visibleDestinations.map((card) => <DestinationCard data={card} key={card.destination.id} />)}</div> : <div className="destination-customer-empty" role="status">
         <Search aria-hidden="true" size={27} />
         <h3>{searchQuery ? `No destinations found for “${searchQuery}”.` : 'No destinations match this theme yet.'}</h3>
         <p>{searchQuery && activeTheme ? `Try another search within ${activeTheme.label}, or reset all filters.` : searchQuery ? 'Try another place, highlight or travel theme.' : 'Explore every active LankaStay Destination instead.'}</p>

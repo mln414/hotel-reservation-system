@@ -113,15 +113,15 @@ function AppRoutes() {
         <Route path="offers/:id/edit" element={<ManageOffers />} />
         <Route path="reviews" element={<ReviewManagementGuard><ManageReviews /></ReviewManagementGuard>} />
         <Route path="reviews/:id" element={<ReviewManagementGuard><ManageReviews /></ReviewManagementGuard>} />
-        <Route path="website-content" element={<WebsiteContentManagement />} />
-        <Route path="website-content/home-showcase" element={<WebsiteContentManagement />} />
-        <Route path="website-content/hero" element={<WebsiteContentManagement />} />
-        <Route path="website-content/featured-hotels" element={<WebsiteContentManagement />} />
-        <Route path="website-content/featured-experiences" element={<WebsiteContentManagement />} />
-        <Route path="website-content/experiences" element={<WebsiteContentManagement />} />
-        <Route path="website-content/experiences/new" element={<WebsiteContentManagement />} />
-        <Route path="website-content/experiences/:id/edit" element={<WebsiteContentManagement />} />
-        <Route path="website-content/experiences/:id/preview" element={<WebsiteContentManagement />} />
+        <Route path="website-content" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/home-showcase" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/hero" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/featured-hotels" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/featured-experiences" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/experiences" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/experiences/new" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/experiences/:id/edit" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
+        <Route path="website-content/experiences/:id/preview" element={<ManagerPage><WebsiteContentManagement /></ManagerPage>} />
         <Route path="staff" element={<ManagerPage><StaffManagement /></ManagerPage>} />
         <Route path="profile" element={<StaffProfile />} />
         <Route path="account/security" element={<ManagementAccountSecurity />} />

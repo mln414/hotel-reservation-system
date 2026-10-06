@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, Building2, ExternalLink, Image as ImageIcon, MapPin } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import DestinationMap from '../../components/DestinationMap/DestinationMap.jsx'
 import HotelCard from '../../components/HotelCard/HotelCard.jsx'
@@ -11,10 +12,23 @@ import './DestinationAttractions.css'
 
 export default function DestinationDetails() {
   const { slug } = useParams()
-  const { getDestinationBySlug } = useDestinations()
+  const { loadPublicDestination } = useDestinations()
   const { hotelCards } = useHotelDiscovery()
-  const destination = getDestinationBySlug(slug)
-  if (!destination || destination.status !== 'ACTIVE') return <main className="customer-destination-missing"><MapPin size={32} /><h1>Destination unavailable</h1><p>This Destination is not currently available for public discovery.</p><Link to="/destinations"><ArrowLeft size={17} />Explore Destinations</Link></main>
+  const [destination, setDestination] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    setLoadError('')
+    loadPublicDestination(slug)
+      .then((record) => { if (active) setDestination(record) })
+      .catch((error) => { if (active) setLoadError(error.message || 'This Destination could not be loaded.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [slug, loadPublicDestination])
+  if (loading) return <main role="status">Loading destination…</main>
+  if (loadError || !destination || destination.status !== 'ACTIVE') return <main className="customer-destination-missing" role={loadError ? 'alert' : undefined}><MapPin size={32} /><h1>Destination unavailable</h1><p>{loadError || 'This Destination is not currently available for public discovery.'}</p><Link to="/destinations"><ArrowLeft size={17} />Explore Destinations</Link></main>
   const themes = getDestinationThemes(destination)
   const attractions = getActiveAttractions(destination)
   const hotels = hotelCards.filter((item) => String(item.destination?.id) === String(destination.id))

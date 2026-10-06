@@ -98,17 +98,14 @@ public class ManagementRateService {
                     " belongs to hotel ID " + room.getHotelId() + ", not hotel ID " + request.hotelId());
         }
 
-        if (request.baseNightlyRate() == null || request.baseNightlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Base nightly rate must be greater than zero.");
-        }
-
-        if (request.weekendNightlyRate() != null && request.weekendNightlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Weekend nightly rate must be greater than zero.");
-        }
-
         if (request.validFrom() != null && request.validTo() != null && request.validTo().isBefore(request.validFrom())) {
             throw new BusinessRuleException("Valid to date cannot be before valid from date.");
         }
+
+        String rateType = request.rateType() != null && !request.rateType().isBlank() ? request.rateType().trim().toUpperCase() : "BASE";
+        String pricingMethod = request.pricingMethod() != null && !request.pricingMethod().isBlank() ? request.pricingMethod().trim().toUpperCase() : "SET_PRICE";
+        String changeType = request.changeType() != null && !request.changeType().isBlank() ? request.changeType().trim().toUpperCase() : "PERCENTAGE";
+        validatePricing(rateType, pricingMethod, changeType, request.baseNightlyRate(), request.pricingValue(), request.weekendNightlyRate());
 
         if (roomRateRepository.existsByHotelIdAndRoomIdAndRatePlanCodeIgnoreCase(request.hotelId(), request.roomId(), request.ratePlanCode().trim())) {
             throw new ConflictException("A rate plan with code '" + request.ratePlanCode().trim() + "' already exists for this room.");
@@ -119,9 +116,11 @@ public class ManagementRateService {
         rate.setRoomId(request.roomId());
         rate.setRatePlanName(request.ratePlanName().trim());
         rate.setRatePlanCode(request.ratePlanCode().trim().toUpperCase());
-        rate.setRateType(request.rateType() != null && !request.rateType().isBlank() ? request.rateType() : "BASE");
-        rate.setPricingMethod(request.pricingMethod() != null && !request.pricingMethod().isBlank() ? request.pricingMethod() : "SET_PRICE");
-        rate.setBaseNightlyRate(request.baseNightlyRate());
+        rate.setRateType(rateType);
+        rate.setPricingMethod(pricingMethod);
+        rate.setChangeType(changeType);
+        rate.setPricingValue(request.pricingValue());
+        rate.setBaseNightlyRate("SET_PRICE".equals(pricingMethod) ? request.baseNightlyRate() : null);
         rate.setWeekendNightlyRate(request.weekendNightlyRate());
         rate.setValidFrom(request.validFrom());
         rate.setValidTo(request.validTo());
@@ -148,17 +147,14 @@ public class ManagementRateService {
             throw new AccessDeniedException("Staff cannot modify rates belonging to another hotel.");
         }
 
-        if (request.baseNightlyRate() == null || request.baseNightlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Base nightly rate must be greater than zero.");
-        }
-
-        if (request.weekendNightlyRate() != null && request.weekendNightlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessRuleException("Weekend nightly rate must be greater than zero.");
-        }
-
         if (request.validFrom() != null && request.validTo() != null && request.validTo().isBefore(request.validFrom())) {
             throw new BusinessRuleException("Valid to date cannot be before valid from date.");
         }
+
+        String rateType = request.rateType() != null && !request.rateType().isBlank() ? request.rateType().trim().toUpperCase() : rate.getRateType();
+        String pricingMethod = request.pricingMethod() != null && !request.pricingMethod().isBlank() ? request.pricingMethod().trim().toUpperCase() : rate.getPricingMethod();
+        String changeType = request.changeType() != null && !request.changeType().isBlank() ? request.changeType().trim().toUpperCase() : rate.getChangeType();
+        validatePricing(rateType, pricingMethod, changeType, request.baseNightlyRate(), request.pricingValue(), request.weekendNightlyRate());
 
         if (roomRateRepository.existsByHotelIdAndRoomIdAndRatePlanCodeIgnoreCaseAndIdNot(rate.getHotelId(), rate.getRoomId(), request.ratePlanCode().trim(), id)) {
             throw new ConflictException("A rate plan with code '" + request.ratePlanCode().trim() + "' already exists for this room.");
@@ -166,9 +162,11 @@ public class ManagementRateService {
 
         rate.setRatePlanName(request.ratePlanName().trim());
         rate.setRatePlanCode(request.ratePlanCode().trim().toUpperCase());
-        if (request.rateType() != null && !request.rateType().isBlank()) rate.setRateType(request.rateType());
-        if (request.pricingMethod() != null && !request.pricingMethod().isBlank()) rate.setPricingMethod(request.pricingMethod());
-        rate.setBaseNightlyRate(request.baseNightlyRate());
+        rate.setRateType(rateType);
+        rate.setPricingMethod(pricingMethod);
+        rate.setChangeType(changeType);
+        rate.setPricingValue(request.pricingValue());
+        rate.setBaseNightlyRate("SET_PRICE".equals(pricingMethod) ? request.baseNightlyRate() : null);
         rate.setWeekendNightlyRate(request.weekendNightlyRate());
         rate.setValidFrom(request.validFrom());
         rate.setValidTo(request.validTo());
@@ -222,5 +220,40 @@ public class ManagementRateService {
 
         roomRateRepository.delete(rate);
         audit.record(principal.id(), null, SecurityEventType.RATE_DELETED, "RoomRate", "SUCCESS");
+    }
+
+    private void validatePricing(
+            String rateType,
+            String pricingMethod,
+            String changeType,
+            BigDecimal baseNightlyRate,
+            BigDecimal pricingValue,
+            BigDecimal weekendNightlyRate
+    ) {
+        if (!List.of("BASE", "WEEKEND", "SEASONAL", "SPECIAL_DATE").contains(rateType)) {
+            throw new BusinessRuleException("Rate type is invalid.");
+        }
+        if (!List.of("SET_PRICE", "INCREASE_BASE", "DECREASE_BASE").contains(pricingMethod)) {
+            throw new BusinessRuleException("Pricing method is invalid.");
+        }
+        if (!"SET_PRICE".equals(pricingMethod) && "BASE".equals(rateType)) {
+            throw new BusinessRuleException("A base rate must set a fixed price.");
+        }
+        if ("SET_PRICE".equals(pricingMethod)) {
+            if (baseNightlyRate == null || baseNightlyRate.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessRuleException("Rate amount must be greater than zero.");
+            }
+        } else {
+            if (!List.of("PERCENTAGE", "FIXED_AMOUNT").contains(changeType)) {
+                throw new BusinessRuleException("Change type must be PERCENTAGE or FIXED_AMOUNT.");
+            }
+            if (pricingValue == null || pricingValue.compareTo(BigDecimal.ZERO) < 0
+                    || ("PERCENTAGE".equals(changeType) && pricingValue.compareTo(BigDecimal.ZERO) == 0)) {
+                throw new BusinessRuleException("Rate adjustment value is invalid.");
+            }
+        }
+        if (weekendNightlyRate != null && weekendNightlyRate.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException("Weekend nightly rate must be greater than zero.");
+        }
     }
 }

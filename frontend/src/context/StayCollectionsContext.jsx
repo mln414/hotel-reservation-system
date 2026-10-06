@@ -1,38 +1,40 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import initialCollections from '../data/stayCollections.js'
 import StayCollectionsContext from './stayCollectionsContext.js'
 import { createSlug } from '../utils/hotelManagement.js'
 import { getActiveCollections, getHomeCollections } from '../utils/stayCollectionDomain.js'
+import useAuth from './useAuth.js'
+import usePersistentContent from './usePersistentContent.js'
 
 const normalize = (value) => String(value ?? '')
 const normalizeName = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 
 export function StayCollectionsProvider({ children }) {
-  const [collections, setCollections] = useState(initialCollections)
+  const { user } = useAuth()
+  const persistence = usePersistentContent('STAY_COLLECTION', initialCollections, user)
+  const { items: collections, loading, error, refresh, create, update, updateMany } = persistence
   const getCollectionById = useCallback((id) => collections.find((item) => normalize(item.id) === normalize(id)), [collections])
   const isDuplicateName = useCallback((title, excludeId) => collections.some((item) => normalize(item.id) !== normalize(excludeId) && item.status === 'ACTIVE' && normalizeName(item.title) === normalizeName(title)), [collections])
-  const addCollection = useCallback((data) => {
+  const addCollection = useCallback(async (data) => {
     const base = createSlug(data.slug || data.title) || `collection-${Date.now()}`
     let id = base
     let suffix = 2
-    setCollections((current) => {
-      while (current.some((item) => normalize(item.id) === normalize(id))) id = `${base}-${suffix++}`
-      return [...current, { ...data, id, slug: id, title: data.title.trim(), displayOrder: current.length + 1, status: data.status || 'ACTIVE', showOnHome: Boolean(data.showOnHome), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
-    })
+    while (collections.some((item) => normalize(item.id) === normalize(id))) id = `${base}-${suffix++}`
+    await create({ ...data, id, slug: id, title: data.title.trim(), displayOrder: collections.length + 1, status: data.status || 'ACTIVE', showOnHome: Boolean(data.showOnHome), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     return id
-  }, [])
-  const updateCollection = useCallback((id, updates) => setCollections((current) => current.map((item) => normalize(item.id) === normalize(id) ? { ...item, ...updates, title: updates.title?.trim() || item.title, updatedAt: new Date().toISOString() } : item)), [])
+  }, [collections, create])
+  const updateCollection = useCallback((id, updates) => update(id, { ...updates, title: updates.title?.trim() }), [update])
   const setCollectionStatus = useCallback((id, status) => updateCollection(id, { status }), [updateCollection])
-  const reorderCollections = useCallback((id, direction) => setCollections((current) => {
-    const ordered = [...current].sort((a, b) => a.displayOrder - b.displayOrder)
+  const reorderCollections = useCallback(async (id, direction) => {
+    const ordered = [...collections].sort((a, b) => a.displayOrder - b.displayOrder)
     const index = ordered.findIndex((item) => normalize(item.id) === normalize(id))
     const target = index + direction
-    if (index < 0 || target < 0 || target >= ordered.length) return current
+    if (index < 0 || target < 0 || target >= ordered.length) return
     ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
-    return ordered.map((item, itemIndex) => ({ ...item, displayOrder: itemIndex + 1, updatedAt: new Date().toISOString() }))
-  }), [])
+    await updateMany(ordered.map((item, itemIndex) => ({ ...item, displayOrder: itemIndex + 1, updatedAt: new Date().toISOString() })))
+  }, [collections, updateMany])
   const activeCollections = useMemo(() => getActiveCollections(collections), [collections])
   const homeCollections = useMemo(() => getHomeCollections(collections), [collections])
-  const value = useMemo(() => ({ collections, activeCollections, homeCollections, getCollectionById, isDuplicateName, addCollection, updateCollection, deactivateCollection: (id) => setCollectionStatus(id, 'INACTIVE'), reactivateCollection: (id) => setCollectionStatus(id, 'ACTIVE'), reorderCollections }), [collections, activeCollections, homeCollections, getCollectionById, isDuplicateName, addCollection, updateCollection, setCollectionStatus, reorderCollections])
+  const value = useMemo(() => ({ collections, activeCollections, homeCollections, loading, error, refresh, getCollectionById, isDuplicateName, addCollection, updateCollection, deactivateCollection: (id) => setCollectionStatus(id, 'INACTIVE'), reactivateCollection: (id) => setCollectionStatus(id, 'ACTIVE'), reorderCollections }), [collections, activeCollections, homeCollections, loading, error, refresh, getCollectionById, isDuplicateName, addCollection, updateCollection, setCollectionStatus, reorderCollections])
   return <StayCollectionsContext.Provider value={value}>{children}</StayCollectionsContext.Provider>
 }

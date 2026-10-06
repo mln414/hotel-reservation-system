@@ -6,6 +6,7 @@ import CalendarPicker from '../../components/SearchBar/CalendarPicker.jsx'
 import useHotels from '../../context/useHotels.js'
 import useRates from '../../context/useRates.js'
 import useRooms from '../../context/useRooms.js'
+import useAuth from '../../context/useAuth.js'
 import { calculateDerivedRate, DAY_KEYS, formatRateAmount, formatRateChange, getBaseRate, getRateStatus, PRICING_METHOD_LABELS, RATE_TYPE_DESCRIPTIONS, RATE_TYPE_LABELS, RATE_TYPES } from '../../utils/rateFormatting.js'
 import './ManageRates.css'
 
@@ -16,22 +17,32 @@ const dayLabels = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', 
 const blankRate = (rateType = 'BASE') => ({ name: rateType === 'BASE' ? 'Base Rate' : RATE_TYPE_LABELS[rateType], rateType, pricingMethod: 'SET_PRICE', changeType: 'PERCENTAGE', amount: '', value: '', validFrom: '', validTo: '', applicableDays: rateType === 'WEEKEND' ? ['FRI', 'SAT'] : [], minimumStay: '', notes: '', status: 'ACTIVE' })
 
 export default function ManageRates() {
-  const { hotels, destinations } = useHotels(); const { rooms } = useRooms(); const rates = useRates(); const [params, setParams] = useSearchParams(); const [modeError, setModeError] = useState('')
+  const { hotels, destinations } = useHotels(); const { rooms } = useRooms(); const rates = useRates(); const { user } = useAuth(); const [params, setParams] = useSearchParams(); const [modeError, setModeError] = useState('')
+  const canManageHotelRates = user?.role === 'MANAGER'
   const section = params.get('section') || ''; const hotelId = params.get('hotelId') || ''; const roomTypeId = params.get('roomTypeId') || ''; const source = params.get('from') || ''
   const hasRateMode = section === 'hotelRates' || section === 'roomTypeRates'
   const hotel = hasRateMode ? hotels.find((item) => String(item.id) === String(hotelId)) : null
   const room = rooms.find((item) => String(item.id) === String(roomTypeId)); const hotelRooms = rooms.filter((item) => String(item.hotelId) === String(hotelId)); const destination = destinations.find((item) => String(item.id) === String(hotel?.destinationId))
   const setContext = (updates) => { const next = new URLSearchParams(params); Object.entries(updates).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); setParams(next) }
   const backTarget = source === 'hotelSetup' ? `/management/hotels/${hotelId}/setup?tab=rates` : source === 'roomDetails' ? `/management/rooms/${roomTypeId}` : '/management/rates'
-  const chooseMode = (key) => { setModeError(''); setContext({ section: key, roomTypeId: '' }) }
+  const chooseMode = (key) => {
+    if (key === 'hotelRates' && !canManageHotelRates) {
+      setModeError('Hotel Rates can only be managed by a Manager.')
+      return
+    }
+    setModeError('')
+    setContext({ section: key, roomTypeId: '' })
+  }
   const chooseHotel = (id) => { if (!hasRateMode) { setModeError('Select Hotel Rates or Room Type Rates before choosing a Hotel.'); return } setModeError(''); setContext({ hotelId: id, section }) }
 
   return <section className="rates-page"><header className="rates-header"><div><span>{hotel ? `${hotel.name} · Commercial setup` : 'Commercial setup'}</span><h1>Rates</h1><p>Normal Hotel and Room Type selling prices. Promotions remain in Offers.</p></div>{hotel && <Link to={backTarget}><ArrowLeft size={15} />{source === 'roomDetails' ? 'Back to Room Type' : source === 'hotelSetup' ? `Back to ${hotel.name} Rates` : 'Change Hotel'}</Link>}</header>
     {!hotel && <nav className="rates-section-nav" aria-label="Rate sections">{[['hotelRates', 'Hotel Rates', 'Property-level pricing rules.'], ['roomTypeRates', 'Room Type Rates', 'Date-aware selling rates for Room Types.']].map(([key, title, description]) => <button type="button" className={section === key ? 'active' : ''} key={key} onClick={() => chooseMode(key)}><strong>{title}</strong><small>{description}</small></button>)}</nav>}
     {hotel && <section className="rates-context-banner"><span>Pricing for</span><div><h2>{hotel.name}</h2><p>{destination?.name || hotel.destination}{room && <> <b>→</b> {room.name}</>}</p></div></section>}
     {!hotel && modeError && <p className="rate-mode-error" role="alert">{modeError}</p>}
+    {rates.ratesError && <p className="rate-mode-error" role="alert">{rates.ratesError}</p>}
     {!hotel && <HotelPicker hotels={hotels} destinations={destinations} rooms={rooms} roomRates={rates.roomRates} section={section} select={chooseHotel} />}
-    {hotel && section === 'hotelRates' && <RateWorkspace scope="hotel" subject={hotel} items={rates.getRatesForHotel(hotel.id)} add={rates.addHotelRate} update={rates.updateHotelRate} activate={rates.activateHotelRate} deactivate={rates.deactivateHotelRate} remove={() => {}} />}
+    {hotel && section === 'hotelRates' && canManageHotelRates && <RateWorkspace scope="hotel" subject={hotel} items={rates.getRatesForHotel(hotel.id)} add={rates.addHotelRate} update={rates.updateHotelRate} activate={rates.activateHotelRate} deactivate={rates.deactivateHotelRate} remove={() => {}} />}
+    {hotel && section === 'hotelRates' && !canManageHotelRates && <p className="rate-mode-error" role="alert">Hotel Rates can only be managed by a Manager.</p>}
     {hotel && section === 'roomTypeRates' && !room && <RoomPicker hotel={hotel} rooms={hotelRooms} getCurrentRoomRate={rates.getCurrentRoomRate} select={(id) => setContext({ roomTypeId: id })} />}
     {hotel && section === 'roomTypeRates' && room && <RateWorkspace scope="room" subject={room} items={rates.getRatesByRoomId(room.id)} add={rates.addRoomRate} update={rates.updateRoomRate} activate={rates.activateRoomRate} deactivate={rates.deactivateRoomRate} remove={rates.deleteRoomRate} />}
   </section>

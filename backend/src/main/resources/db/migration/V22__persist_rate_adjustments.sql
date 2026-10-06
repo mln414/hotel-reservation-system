@@ -1,0 +1,4 @@
+ALTER TABLE room_rates
+    MODIFY COLUMN base_nightly_rate DECIMAL(14,2) NULL,
+    ADD COLUMN pricing_value DECIMAL(14,2) NULL,
+    ADD COLUMN change_type VARCHAR(30) NOT NULL DEFAULT 'PERCENTAGE';

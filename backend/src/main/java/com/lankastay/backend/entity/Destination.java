@@ -34,16 +34,16 @@ public class Destination {
     @Column(length = 100)
     private String category;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String region;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String district;
 
-    @Column(nullable = false)
+    @Column
     private Double latitude;
 
-    @Column(nullable = false)
+    @Column
     private Double longitude;
 
     @Enumerated(EnumType.STRING)
