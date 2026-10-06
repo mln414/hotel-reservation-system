@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { canTransitionDestinationStatus, calculateDistanceKm, createDestinationSaveMetadata, DESTINATION_STATUS, getActiveAttractions, getAttractionsForHotel, getDestinationLifecycleActions, getDestinationResumeStep, getDestinationThemes, getHighestReachableDestinationStep, hasCoordinates, isDuplicateAttraction, normalizeDestination, validateDestinationForActivation, validateDestinationStep } from '../src/utils/destinationDomain.js'
+import { canTransitionDestinationStatus, calculateDistanceKm, createDestinationSaveMetadata, DESTINATION_STATUS, getActiveAttractions, getAttractionsForHotel, getDestinationLifecycleActions, getDestinationMainImage, getDestinationResumeStep, getDestinationThemes, getHighestReachableDestinationStep, hasCoordinates, isDuplicateAttraction, normalizeDestination, validateDestinationForActivation, validateDestinationStep } from '../src/utils/destinationDomain.js'
 import { getDistrictCentre, getDistrictsForProvince, isValidProvinceDistrict, SRI_LANKA_ADMINISTRATIVE_AREAS } from '../src/utils/sriLankaAdministrative.js'
 
 const galle=normalizeDestination({id:3,name:'Galle',slug:'galle',category:'Heritage & Coast',shortDescription:'Card copy',description:'Full copy',image:'galle.jpg',highlights:['Galle Fort'],active:true})
@@ -39,4 +39,6 @@ assert.equal(getDestinationResumeStep(galle,4),4,'completed Destination editing 
 const saveMetadata=createDestinationSaveMetadata(2,2,'2026-08-11T03:00:00.000Z')
 assert.deepEqual(saveMetadata,{draftStep:2,lastSavedStep:3,lastCompletedStep:3,updatedAt:'2026-08-11T03:00:00.000Z',lastUpdatedAt:'2026-08-11T03:00:00.000Z',lastUpdatedSection:'Location'},'successful Step saves preserve workflow and accurate mutation metadata')
 assert.deepEqual(normalizeDestination({...galle,imageFocalPoint:{x:20,y:72}}).imageFocalPoint,{x:20,y:72},'Main Image focal metadata survives normalization')
+assert.equal(getDestinationMainImage({ mainImage: '/uploads/destinations/galle.webp' }), 'http://localhost:8080/uploads/destinations/galle.webp', 'uploaded destination images resolve against the backend like hotel images')
+assert.equal(getDestinationMainImage({ mainImage: { src: '/uploads/destinations/ella.webp' } }), 'http://localhost:8080/uploads/destinations/ella.webp', 'object-shaped destination media resolves like hotel media')
 console.log('PASS destination domain normalization, relationships, lifecycle, duplicates and distance')

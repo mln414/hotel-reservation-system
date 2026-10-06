@@ -1,4 +1,5 @@
 import { isValidProvinceDistrict } from './sriLankaAdministrative.js'
+import { resolveCatalogImageUrl } from './hotelMedia.js'
 
 export const DESTINATION_STATUS = Object.freeze({ DRAFT: 'DRAFT', READY_FOR_REVIEW: 'READY_FOR_REVIEW', ACTIVE: 'ACTIVE', INACTIVE: 'INACTIVE' })
 
@@ -51,11 +52,14 @@ export function getLegacyThemeKeys(category = '') { return LEGACY_THEME_MAP[cate
 export function getTheme(key) { return DESTINATION_THEMES.find((theme) => theme.key === key) }
 export function getAttractionType(key) { return ATTRACTION_TYPES.find((type) => type.key === key) || ATTRACTION_TYPES[0] }
 export function getDestinationThemes(destination) { return (destination?.themeKeys || getLegacyThemeKeys(destination?.category)).map(getTheme).filter(Boolean) }
-export function getDestinationMainImage(destination) { return destination?.mainImage || destination?.image || '' }
+export function getDestinationMainImage(destination) {
+  const image = destination?.mainImage || destination?.image
+  return resolveCatalogImageUrl(typeof image === 'object' ? image?.src : image) || ''
+}
 
 export function normalizeAttraction(item, index = 0) {
   if (typeof item === 'string') return { id: `legacy-${slugifyDestination(item)}`, name: item, type: 'HERITAGE', shortDescription: '', latitude: null, longitude: null, status: 'ACTIVE', displayOrder: index }
-  return { id: item.id || `attraction-${index}-${slugifyDestination(item.name)}`, name: item.name || '', type: item.type || 'HERITAGE', shortDescription: item.shortDescription || item.description || '', latitude: numberOrNull(item.latitude), longitude: numberOrNull(item.longitude), image: item.image || '', estimatedTravelTime: item.estimatedTravelTime || item.travelTime || '', source: item.source || '', sourceId: item.sourceId || '', status: item.status || 'ACTIVE', displayOrder: Number.isFinite(item.displayOrder) ? item.displayOrder : index }
+  return { id: item.id || `attraction-${index}-${slugifyDestination(item.name)}`, name: item.name || '', type: item.type || 'HERITAGE', shortDescription: item.shortDescription || item.description || '', latitude: numberOrNull(item.latitude), longitude: numberOrNull(item.longitude), image: resolveCatalogImageUrl(typeof item.image === 'object' ? item.image?.src : item.image) || '', estimatedTravelTime: item.estimatedTravelTime || item.travelTime || '', source: item.source || '', sourceId: item.sourceId || '', status: item.status || 'ACTIVE', displayOrder: Number.isFinite(item.displayOrder) ? item.displayOrder : index }
 }
 
 export function normalizeDestination(destination) {

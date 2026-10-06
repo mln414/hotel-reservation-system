@@ -6,7 +6,7 @@ import ManagementSelect from '../../components/ManagementSelect/ManagementSelect
 import useDestinations from '../../context/useDestinations.js'
 import useHotels from '../../context/useHotels.js'
 import useManagementFeedback from '../../context/useManagementFeedback.js'
-import { DESTINATION_STATUS, DESTINATION_THEMES, getDestinationThemes, getHotelsForDestination } from '../../utils/destinationDomain.js'
+import { DESTINATION_STATUS, DESTINATION_THEMES, getDestinationMainImage, getDestinationThemes, getHotelsForDestination } from '../../utils/destinationDomain.js'
 import { ThemeIcon } from '../../utils/destinationIcons.jsx'
 import './ManageDestinations.css'
 
@@ -23,8 +23,9 @@ function relativeDate(value, submitted = false) {
 
 function DestinationImage({ destination }) {
   const [failed, setFailed] = useState(false)
+  const mainImage = getDestinationMainImage(destination)
   const position = `${destination.imageFocalPoint?.x ?? 50}% ${destination.imageFocalPoint?.y ?? 50}%`
-  return failed || !destination.mainImage ? <span className="destination-image-fallback"><ImageIcon size={20} /></span> : <img src={destination.mainImage} alt="" style={{ objectPosition: position }} onError={() => setFailed(true)} />
+  return failed || !mainImage ? <span className="destination-image-fallback"><ImageIcon size={20} /></span> : <img src={mainImage} alt="" style={{ objectPosition: position }} onError={() => setFailed(true)} />
 }
 
 function ThemeProjection({ themes }) {
