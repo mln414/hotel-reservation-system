@@ -302,10 +302,14 @@ public class HotelService {
 
         // Delete the complete Hotel aggregate in foreign-key-safe order. The surrounding
         // transaction guarantees that a failure rolls every deletion back.
+        jdbcTemplate.update("DELETE FROM reservation_physical_rooms WHERE reservation_id IN (SELECT id FROM reservations WHERE hotel_id = ?)", id);
         jdbcTemplate.update("DELETE FROM review_photos WHERE review_id IN (SELECT id FROM reviews WHERE hotel_id = ?)", id);
         jdbcTemplate.update("DELETE FROM reviews WHERE hotel_id = ?", id);
         jdbcTemplate.update("DELETE FROM reservation_items WHERE reservation_id IN (SELECT id FROM reservations WHERE hotel_id = ?)", id);
         jdbcTemplate.update("DELETE FROM reservations WHERE hotel_id = ?", id);
+        jdbcTemplate.update("DELETE FROM physical_room_blocks WHERE physical_room_id IN (SELECT id FROM physical_rooms WHERE hotel_id = ?)", id);
+        jdbcTemplate.update("DELETE FROM physical_rooms WHERE hotel_id = ?", id);
+        jdbcTemplate.update("DELETE FROM discounts WHERE hotel_id = ?", id);
         // Empty offer targets mean unrestricted eligibility. Disable offers losing
         // their last hotel or room target before removing those targeting links.
         jdbcTemplate.update("""

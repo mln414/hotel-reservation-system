@@ -12,6 +12,9 @@ import com.lankastay.backend.repository.RoomRepository;
 import com.lankastay.backend.repository.ReservationPhysicalRoomRepository;
 import com.lankastay.backend.repository.CustomerUserRepository;
 import com.lankastay.backend.security.StaffPrincipal;
+import com.lankastay.backend.service.reservation.observer.ReservationEvent;
+import com.lankastay.backend.service.reservation.observer.ReservationEventPublisher;
+import com.lankastay.backend.service.reservation.observer.ReservationEventType;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,11 +33,13 @@ public class ManagementReservationService {
     private final ReservationPhysicalRoomRepository assignments;
     private final CustomerReservationService customerReservations;
     private final CustomerUserRepository customers;
+    private final ReservationEventPublisher reservationEvents;
 
     public ManagementReservationService(ReservationRepository reservations, ReservationItemRepository items, SecurityAuditService audit,
                                         PhysicalRoomRepository physicalRooms, PhysicalRoomBlockRepository physicalBlocks,
                                         RoomRepository roomTypes, ReservationPhysicalRoomRepository assignments,
-                                        CustomerReservationService customerReservations, CustomerUserRepository customers) {
+                                        CustomerReservationService customerReservations, CustomerUserRepository customers,
+                                        ReservationEventPublisher reservationEvents) {
         this.reservations = reservations;
         this.items = items;
         this.audit = audit;
@@ -44,6 +49,7 @@ public class ManagementReservationService {
         this.assignments = assignments;
         this.customerReservations = customerReservations;
         this.customers = customers;
+        this.reservationEvents = reservationEvents;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -94,6 +100,7 @@ public class ManagementReservationService {
                 reservation.setCancelledAt(LocalDateTime.now());
                 reservation.setCancellationReason("Cancelled by hotel staff");
                 reservation.setCancelledByType("STAFF");
+                reservationEvents.publishAfterCommit(new ReservationEvent(reservation.getId(), reservation.getCustomerId(), ReservationEventType.CANCELLED));
             }
             audit.record(principal.id(), reservation.getCustomerId(), request.reservationStatus() == ReservationStatus.COMPLETED
                     ? SecurityEventType.RESERVATION_COMPLETED : SecurityEventType.RESERVATION_CANCELLED, null, "SUCCESS");
@@ -114,6 +121,7 @@ public class ManagementReservationService {
         reservation.setCancellationNote(request.note() == null || request.note().isBlank() ? null : request.note().trim());
         reservation.setCancelledByType("STAFF");
         audit.record(principal.id(), reservation.getCustomerId(), SecurityEventType.RESERVATION_CANCELLED, null, "SUCCESS");
+        reservationEvents.publishAfterCommit(new ReservationEvent(reservation.getId(), reservation.getCustomerId(), ReservationEventType.CANCELLED));
         return response(reservations.save(reservation));
     }
 
@@ -150,6 +158,16 @@ public class ManagementReservationService {
                     throw new ConflictException("A scheduled restriction overlaps this reservation.");
                 boolean matchingType = items.findByReservationId(id).stream().anyMatch(item -> item.getRoomId().equals(physical.getRoomTypeId()));
                 if (!matchingType) throw new ConflictException("Physical room type does not match the reservation.");
+                int typeQuantity = items.findByReservationId(id).stream()
+                        .filter(item -> item.getRoomId().equals(physical.getRoomTypeId()))
+                        .mapToInt(ReservationItem::getQuantity).sum();
+                long assignedForType = current.stream()
+                        .map(a -> physicalRooms.findById(a.getPhysicalRoomId()).orElse(null))
+                        .filter(r -> r != null && r.getRoomTypeId().equals(physical.getRoomTypeId()))
+                        .count();
+                if (assignedForType >= typeQuantity) {
+                    throw new ConflictException("All units for this room type have already been assigned.");
+                }
                 int quantity = items.findByReservationId(id).stream().mapToInt(ReservationItem::getQuantity).sum();
                 if (current.size() >= quantity) throw new ConflictException("All reserved room units are already assigned.");
                 if (assignments.countOverlapping(physical.getId(), id, reservation.getCheckIn(), reservation.getCheckOut()) > 0

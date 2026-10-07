@@ -144,14 +144,20 @@ public class ReviewService {
             throw new AccessDeniedException("This review does not belong to your account.");
         }
 
+        if (review.getStatus() == ReviewStatus.DELETED_BY_CUSTOMER) {
+            throw new ConflictException("This review has already been deleted.");
+        }
+
+        // Soft-delete so management guards (hide/restore) can correctly detect
+        // customer-deleted reviews and the hotel rating stays consistent.
+        review.setStatus(ReviewStatus.DELETED_BY_CUSTOMER);
+        review.setDeletedAt(Instant.now());
+        reviewRepository.save(review);
+
         Long hotelId = review.getHotel().getId();
         Reservation reservation = review.getReservation();
-        reviewRepository.delete(review);
-        reviewRepository.flush();
 
-        // A deleted customer review no longer blocks a fresh review for the
-        // same completed reservation. Keep the reservation marker consistent
-        // with the review table so the eligibility API cannot report stale data.
+        // Clear the reservation marker so the stay becomes eligible for a fresh review.
         if (reservation != null) {
             reservation.setReviewSubmittedAt(null);
             reservationRepository.save(reservation);
@@ -173,28 +179,52 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<EligibleStayResponse> getEligibleStays(CustomerUser customer) {
         List<Reservation> reservations = reservationRepository.findByCustomerIdOrderByCreatedAtDesc(customer.getId());
-        List<EligibleStayResponse> result = new ArrayList<>();
+        if (reservations.isEmpty()) return List.of();
 
+        // Batch-load all related data to avoid N+1 queries.
+        List<Long> reservationIds = reservations.stream().map(Reservation::getId).toList();
+        List<Long> hotelIds = reservations.stream().map(Reservation::getHotelId).distinct().toList();
+
+        Map<Long, Hotel> hotelMap = hotelRepository.findAllById(hotelIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Hotel::getId, h -> h));
+
+        // Collect destination IDs that are actually present and batch-load them.
+        List<Long> destinationIds = hotelMap.values().stream()
+                .map(Hotel::getDestinationId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, String> destinationNameMap = destinationIds.isEmpty() ? Map.of()
+                : destinationRepository.findAllById(destinationIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(Destination::getId, Destination::getName));
+
+        // Batch-load first reservation item per reservation for room name.
+        Map<Long, String> roomNameMap = reservationItemRepository.findByReservationIdIn(reservationIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ReservationItem::getReservationId,
+                        item -> item.getRoomNameSnapshot() != null ? item.getRoomNameSnapshot() : "Standard Room",
+                        (existing, replacement) -> existing // keep first item
+                ));
+
+        // Batch-load existing reviews for these reservations.
+        Map<Long, Review> reviewByReservation = reviewRepository.findByReservationIdIn(reservationIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        r -> r.getReservation().getId(), r -> r));
+
+        List<EligibleStayResponse> result = new ArrayList<>();
         for (Reservation res : reservations) {
             boolean isCompleted = isCompletedStay(res);
-            Optional<Review> existingReview = reviewRepository.findByReservationId(res.getId());
-            // A hard-deleted review leaves no row and makes the stay eligible
-            // again. Do not let the historical reservation marker become stale
-            // eligibility state.
-            boolean alreadyReviewed = existingReview.isPresent();
-            Long reviewId = existingReview.map(Review::getId).orElse(null);
 
-            Hotel hotel = hotelRepository.findById(res.getHotelId()).orElse(null);
+            // A soft-deleted review (DELETED_BY_CUSTOMER) no longer blocks a fresh review.
+            Review existingReview = reviewByReservation.get(res.getId());
+            boolean alreadyReviewed = existingReview != null
+                    && existingReview.getStatus() != ReviewStatus.DELETED_BY_CUSTOMER;
+            Long reviewId = alreadyReviewed ? existingReview.getId() : null;
+
+            Hotel hotel = hotelMap.get(res.getHotelId());
             String hotelName = hotel != null ? hotel.getName() : "LankaStay Hotel";
             String destinationName = (hotel != null && hotel.getDestinationId() != null)
-                    ? destinationRepository.findById(hotel.getDestinationId()).map(Destination::getName).orElse(hotel.getCity())
+                    ? destinationNameMap.getOrDefault(hotel.getDestinationId(), hotel.getCity())
                     : (hotel != null ? hotel.getCity() : "Sri Lanka");
             String hotelImage = hotel != null ? hotel.getMainImage() : null;
-
-            List<ReservationItem> items = reservationItemRepository.findByReservationId(res.getId());
-            String roomName = (!items.isEmpty() && items.get(0).getRoomNameSnapshot() != null)
-                    ? items.get(0).getRoomNameSnapshot()
-                    : "Standard Room";
+            String roomName = roomNameMap.getOrDefault(res.getId(), "Standard Room");
 
             result.add(new EligibleStayResponse(
                     res.getId(),
@@ -211,7 +241,6 @@ public class ReviewService {
                     reviewId
             ));
         }
-
         return result;
     }
 
@@ -222,29 +251,9 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<ReviewResponse> getManagementReviews(StaffPrincipal principal, Long hotelId, String search, Integer rating, ReviewStatus status) {
         Long scopedHotelId = resolveManagementHotelScope(principal, hotelId);
-
-        List<Review> list;
-        if (scopedHotelId != null) {
-            list = reviewRepository.findByHotelIdOrderByCreatedAtDesc(scopedHotelId);
-        } else {
-            list = reviewRepository.findAllByOrderByCreatedAtDesc();
-        }
-
-        return list.stream()
-                .filter(r -> status == null || r.getStatus() == status)
-                .filter(r -> rating == null || r.getOverallRating() == rating)
-                .filter(r -> {
-                    if (search == null || search.isBlank()) return true;
-                    String q = search.toLowerCase();
-                    String guestName = (r.getReservation() != null && r.getReservation().getGuestName() != null)
-                            ? r.getReservation().getGuestName().toLowerCase()
-                            : "";
-                    return guestName.contains(q) ||
-                            r.getTitle().toLowerCase().contains(q) ||
-                            r.getComment().toLowerCase().contains(q);
-                })
-                .map(this::toReviewResponse)
-                .toList();
+        String searchTerm = (search == null || search.isBlank()) ? null : search.toLowerCase();
+        List<Review> list = reviewRepository.findByFilters(scopedHotelId, status, rating, searchTerm);
+        return toReviewResponseList(list);
     }
 
     @Transactional(readOnly = true)
@@ -372,28 +381,15 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public List<PublicReviewResponse> getPublicHotelReviews(Long hotelId) {
-        return reviewRepository.findByHotelIdAndStatusOrderByCreatedAtDesc(hotelId, ReviewStatus.ACTIVE)
-                .stream()
-                .map(this::toPublicReviewResponse)
-                .toList();
+        List<Review> reviews = reviewRepository.findByHotelIdAndStatusOrderByCreatedAtDesc(hotelId, ReviewStatus.ACTIVE);
+        return toPublicReviewResponseList(reviews);
     }
 
     @Transactional(readOnly = true)
     public List<PublicReviewResponse> getPublicReviews(Long hotelId, Integer rating, String sort) {
-        List<Review> reviews;
-        if (hotelId != null) {
-            reviews = reviewRepository.findByHotelIdAndStatusOrderByCreatedAtDesc(hotelId, ReviewStatus.ACTIVE);
-        } else {
-            reviews = reviewRepository.findAllByOrderByCreatedAtDesc()
-                    .stream()
-                    .filter(r -> r.getStatus() == ReviewStatus.ACTIVE)
-                    .toList();
-        }
+        List<Review> reviews = reviewRepository.findByFilters(hotelId, ReviewStatus.ACTIVE, rating, null);
 
-        List<PublicReviewResponse> result = reviews.stream()
-                .filter(r -> rating == null || r.getOverallRating() == rating)
-                .map(this::toPublicReviewResponse)
-                .toList();
+        List<PublicReviewResponse> result = toPublicReviewResponseList(reviews);
 
         if ("HIGHEST".equalsIgnoreCase(sort)) {
             return result.stream().sorted((a, b) -> Integer.compare(b.overallRating(), a.overallRating())).toList();
@@ -463,7 +459,11 @@ public class ReviewService {
     }
 
     private boolean isCompletedStay(Reservation reservation) {
-        return reservation.getReservationStatus() == ReservationStatus.COMPLETED
+        // Accept both COMPLETED and CONFIRMED reservations whose checkout has passed.
+        // COMPLETED is the ideal terminal state, but reservations may linger as
+        // CONFIRMED if no automated completion job runs.
+        ReservationStatus s = reservation.getReservationStatus();
+        return (s == ReservationStatus.COMPLETED || s == ReservationStatus.CONFIRMED)
                 && reservation.getCheckOut() != null
                 && !reservation.getCheckOut().isAfter(LocalDate.now());
     }
@@ -500,19 +500,40 @@ public class ReviewService {
         throw new AccessDeniedException("Access denied to review management.");
     }
 
+    /** Batch-converts a list of reviews, loading room names in one query. */
+    private List<ReviewResponse> toReviewResponseList(List<Review> reviews) {
+        if (reviews.isEmpty()) return List.of();
+        List<Long> reservationIds = reviews.stream()
+                .filter(r -> r.getReservation() != null)
+                .map(r -> r.getReservation().getId()).distinct().toList();
+        Map<Long, String> roomNameMap = reservationItemRepository.findByReservationIdIn(reservationIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ReservationItem::getReservationId,
+                        item -> item.getRoomNameSnapshot() != null ? item.getRoomNameSnapshot() : "Standard Room",
+                        (a, b) -> a));
+        return reviews.stream().map(r -> toReviewResponse(r, roomNameMap)).toList();
+    }
+
     private ReviewResponse toReviewResponse(Review review) {
+        String roomName = "Standard Room";
+        if (review.getReservation() != null) {
+            var items = reservationItemRepository.findByReservationId(review.getReservation().getId());
+            if (!items.isEmpty() && items.get(0).getRoomNameSnapshot() != null) {
+                roomName = items.get(0).getRoomNameSnapshot();
+            }
+        }
+        return toReviewResponse(review, review.getReservation() != null ? Map.of(review.getReservation().getId(), roomName) : Map.of());
+    }
+
+    private ReviewResponse toReviewResponse(Review review, Map<Long, String> roomNameMap) {
         String customerName = "LankaStay Guest";
         if (review.getCustomer() != null) {
             customerName = review.getCustomer().getFirstName() + " " + review.getCustomer().getLastName();
         }
 
-        String roomName = "Standard Room";
-        if (review.getReservation() != null) {
-            List<ReservationItem> items = reservationItemRepository.findByReservationId(review.getReservation().getId());
-            if (!items.isEmpty() && items.get(0).getRoomNameSnapshot() != null) {
-                roomName = items.get(0).getRoomNameSnapshot();
-            }
-        }
+        String roomName = review.getReservation() != null
+                ? roomNameMap.getOrDefault(review.getReservation().getId(), "Standard Room")
+                : "Standard Room";
 
         ManagementResponseDTO mgmtResp = null;
         if (review.getManagementResponse() != null) {
@@ -561,7 +582,21 @@ public class ReviewService {
         );
     }
 
-    private PublicReviewResponse toPublicReviewResponse(Review review) {
+    /** Batch-converts a list of reviews to public responses, loading room names in one query. */
+    private List<PublicReviewResponse> toPublicReviewResponseList(List<Review> reviews) {
+        if (reviews.isEmpty()) return List.of();
+        List<Long> reservationIds = reviews.stream()
+                .filter(r -> r.getReservation() != null)
+                .map(r -> r.getReservation().getId()).distinct().toList();
+        Map<Long, String> roomNameMap = reservationItemRepository.findByReservationIdIn(reservationIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ReservationItem::getReservationId,
+                        item -> item.getRoomNameSnapshot() != null ? item.getRoomNameSnapshot() : "Standard Room",
+                        (a, b) -> a));
+        return reviews.stream().map(r -> toPublicReviewResponse(r, roomNameMap)).toList();
+    }
+
+    private PublicReviewResponse toPublicReviewResponse(Review review, Map<Long, String> roomNameMap) {
         String reviewerName = "LankaStay Guest";
         if (review.getCustomer() != null) {
             String first = review.getCustomer().getFirstName();
@@ -576,13 +611,9 @@ public class ReviewService {
             stayMonth = "Stayed " + MONTH_YEAR_FORMATTER.format(review.getReservation().getCheckOut().atStartOfDay(ZoneId.of("UTC")));
         }
 
-        String roomName = null;
-        if (review.getReservation() != null) {
-            List<ReservationItem> items = reservationItemRepository.findByReservationId(review.getReservation().getId());
-            if (!items.isEmpty() && items.get(0).getRoomNameSnapshot() != null) {
-                roomName = items.get(0).getRoomNameSnapshot();
-            }
-        }
+        String roomName = review.getReservation() != null
+                ? roomNameMap.getOrDefault(review.getReservation().getId(), null)
+                : null;
 
         ManagementResponseDTO mgmtResp = null;
         if (review.getManagementResponse() != null) {

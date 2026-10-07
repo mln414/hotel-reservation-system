@@ -97,8 +97,8 @@ public class ManagementDashboardService {
 
         LocalDate today = LocalDate.now();
         List<Reservation> allReservations = effectiveHotelId != null
-                ? reservationRepository.findByHotelId(effectiveHotelId)
-                : reservationRepository.findAll();
+                ? reservationRepository.findByHotelIdOrderByCreatedAtDesc(effectiveHotelId)
+                : reservationRepository.findAllByOrderByCreatedAtDesc();
 
         long arrivalsToday = allReservations.stream()
                 .filter(r -> today.equals(r.getCheckIn()) && r.getReservationStatus() == com.lankastay.backend.entity.ReservationStatus.CONFIRMED)
