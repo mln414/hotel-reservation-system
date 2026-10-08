@@ -144,20 +144,15 @@ public class ReviewService {
             throw new AccessDeniedException("This review does not belong to your account.");
         }
 
-        if (review.getStatus() == ReviewStatus.DELETED_BY_CUSTOMER) {
-            throw new ConflictException("This review has already been deleted.");
-        }
-
-        // Soft-delete so management guards (hide/restore) can correctly detect
-        // customer-deleted reviews and the hotel rating stays consistent.
-        review.setStatus(ReviewStatus.DELETED_BY_CUSTOMER);
-        review.setDeletedAt(Instant.now());
-        reviewRepository.save(review);
-
         Long hotelId = review.getHotel().getId();
         Reservation reservation = review.getReservation();
 
+        // Hard-delete the review and its photo collection entries.
+        reviewRepository.delete(review);
+        reviewRepository.flush();
+
         // Clear the reservation marker so the stay becomes eligible for a fresh review.
+        // review_submitted_at is a historical marker and must not block re-creation.
         if (reservation != null) {
             reservation.setReviewSubmittedAt(null);
             reservationRepository.save(reservation);
@@ -172,6 +167,7 @@ public class ReviewService {
     public List<ReviewResponse> getCustomerReviews(CustomerUser customer) {
         return reviewRepository.findByCustomerIdOrderByCreatedAtDesc(customer.getId())
                 .stream()
+                .filter(r -> r.getStatus() != ReviewStatus.DELETED_BY_CUSTOMER)
                 .map(this::toReviewResponse)
                 .toList();
     }
@@ -204,6 +200,7 @@ public class ReviewService {
                 ));
 
         // Batch-load existing reviews for these reservations.
+        // A deleted review leaves no row (hard-deleted), so absence of a row means eligible.
         Map<Long, Review> reviewByReservation = reviewRepository.findByReservationIdIn(reservationIds).stream()
                 .collect(java.util.stream.Collectors.toMap(
                         r -> r.getReservation().getId(), r -> r));
@@ -212,10 +209,8 @@ public class ReviewService {
         for (Reservation res : reservations) {
             boolean isCompleted = isCompletedStay(res);
 
-            // A soft-deleted review (DELETED_BY_CUSTOMER) no longer blocks a fresh review.
             Review existingReview = reviewByReservation.get(res.getId());
-            boolean alreadyReviewed = existingReview != null
-                    && existingReview.getStatus() != ReviewStatus.DELETED_BY_CUSTOMER;
+            boolean alreadyReviewed = existingReview != null;
             Long reviewId = alreadyReviewed ? existingReview.getId() : null;
 
             Hotel hotel = hotelMap.get(res.getHotelId());
@@ -269,10 +264,6 @@ public class ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with ID: " + reviewId));
         verifyStaffPropertyScope(principal, review.getHotel().getId());
 
-        if (review.getStatus() == ReviewStatus.DELETED_BY_CUSTOMER) {
-            throw new ConflictException("Cannot hide a review that was already deleted by the guest.");
-        }
-
         review.setStatus(ReviewStatus.HIDDEN_BY_MODERATION);
         review.setModerationReason(request.moderationReason().trim());
         review.setModerationNote(request.moderationNote() != null ? request.moderationNote().trim() : null);
@@ -291,10 +282,6 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with ID: " + reviewId));
         verifyStaffPropertyScope(principal, review.getHotel().getId());
-
-        if (review.getStatus() == ReviewStatus.DELETED_BY_CUSTOMER) {
-            throw new ConflictException("Management cannot restore a review deleted by the customer.");
-        }
 
         if (review.getStatus() != ReviewStatus.HIDDEN_BY_MODERATION) {
             throw new ConflictException("Only moderation-hidden reviews can be restored.");
@@ -459,11 +446,8 @@ public class ReviewService {
     }
 
     private boolean isCompletedStay(Reservation reservation) {
-        // Accept both COMPLETED and CONFIRMED reservations whose checkout has passed.
-        // COMPLETED is the ideal terminal state, but reservations may linger as
-        // CONFIRMED if no automated completion job runs.
         ReservationStatus s = reservation.getReservationStatus();
-        return (s == ReservationStatus.COMPLETED || s == ReservationStatus.CONFIRMED)
+        return s == ReservationStatus.COMPLETED
                 && reservation.getCheckOut() != null
                 && !reservation.getCheckOut().isAfter(LocalDate.now());
     }
