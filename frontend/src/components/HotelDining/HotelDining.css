@@ -1,0 +1,357 @@
+.hotel-dining-section {
+  width: min(92%, 1320px);
+  margin: 0 auto;
+  padding: 22px 0 38px;
+  scroll-margin-top: 140px;
+}
+
+.hotel-dining-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+
+.hotel-dining-heading > span {
+  display: inline-grid;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 31px;
+  place-items: center;
+  border-radius: 50%;
+  background: #062844;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.hotel-dining-heading h2 {
+  margin: 0;
+  color: #062844;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  font-weight: 800;
+}
+
+.hotel-dining-heading p {
+  margin: 5px 0 0;
+  color: #73848c;
+  font-size: 0.75rem;
+}
+
+.hotel-dining-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.hotel-dining-card {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #dfe5e2;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(10, 35, 55, 0.055);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hotel-dining-card:hover {
+  border-color: rgba(217, 166, 46, 0.72);
+  box-shadow: 0 15px 31px rgba(10, 35, 55, 0.1);
+  transform: translateY(-3px);
+}
+
+.hotel-dining-image-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #e9eeec;
+}
+
+.hotel-dining-image-wrap img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.hotel-dining-card:hover .hotel-dining-image-wrap img {
+  transform: scale(1.025);
+}
+
+.hotel-dining-image-wrap > span,
+.hotel-dining-modal-type {
+  display: inline-flex;
+  padding: 6px 9px;
+  border: 1px solid rgba(217, 166, 46, 0.55);
+  border-radius: 8px;
+  background: #fff3d5;
+  color: #173249;
+  font-size: 0.63rem;
+  font-weight: 800;
+}
+
+.hotel-dining-image-wrap > span {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  box-shadow: 0 5px 14px rgba(5, 28, 45, 0.12);
+}
+
+.hotel-dining-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 18px;
+}
+
+.hotel-dining-card h3,
+.hotel-dining-modal h3 {
+  margin: 0;
+  color: #062844;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.18rem;
+  line-height: 1.25;
+}
+
+.hotel-dining-cuisine,
+.hotel-dining-hours {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #9a6b0d;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.hotel-dining-cuisine {
+  margin: 8px 0 0;
+}
+
+.hotel-dining-description,
+.hotel-dining-modal-description {
+  color: #6b7d86;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.hotel-dining-description {
+  min-height: 55px;
+  margin: 10px 0 13px;
+}
+
+.hotel-dining-hours {
+  margin-bottom: 11px;
+  color: #526b78;
+}
+
+.hotel-dining-hours svg,
+.hotel-dining-cuisine svg {
+  flex: 0 0 auto;
+  color: #b57d0c;
+}
+
+.hotel-dining-meals,
+.hotel-dining-features {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hotel-dining-meals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hotel-dining-meals li {
+  padding: 5px 8px;
+  border: 1px solid rgba(217, 166, 46, 0.52);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #73531a;
+  font-size: 0.59rem;
+  font-weight: 750;
+}
+
+.hotel-dining-features {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0ee;
+}
+
+.hotel-dining-features li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #627680;
+  font-size: 0.65rem;
+}
+
+.hotel-dining-features svg {
+  flex: 0 0 auto;
+  color: #b57d0c;
+}
+
+.hotel-dining-details-button {
+  width: 100%;
+  height: 42px;
+  margin-top: auto;
+  padding: 0 14px;
+  border: 1px solid #294356;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #173249;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.hotel-dining-features + .hotel-dining-details-button {
+  margin-top: 16px;
+}
+
+.hotel-dining-details-button:hover {
+  border-color: #c38b13;
+  background: #fff5dd;
+}
+
+.hotel-dining-details-button:focus-visible,
+.hotel-dining-modal-close:focus-visible {
+  outline: 3px solid rgba(217, 166, 46, 0.45);
+  outline-offset: 3px;
+}
+
+.hotel-dining-empty {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid #dfe5e2;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #687b84;
+  font-size: 0.78rem;
+}
+
+.hotel-dining-modal-backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 20, 34, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.hotel-dining-modal {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+
+.hotel-dining-modal-close {
+  position: absolute;
+  z-index: 2;
+  top: 13px;
+  right: 13px;
+  display: inline-grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(4, 31, 49, 0.78);
+  color: #ffffff;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+}
+
+.hotel-dining-modal-image {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  display: block;
+  object-fit: cover;
+}
+
+.hotel-dining-modal-content {
+  padding: 24px;
+}
+
+.hotel-dining-modal-content h3 {
+  margin-top: 10px;
+  font-size: 1.55rem;
+}
+
+.hotel-dining-modal-description {
+  margin: 13px 0 16px;
+}
+
+.hotel-dining-modal-content .hotel-dining-features {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1000px) {
+  .hotel-dining-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .hotel-dining-section {
+    width: 90%;
+    padding-bottom: 32px;
+    scroll-margin-top: 125px;
+  }
+
+  .hotel-dining-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hotel-dining-description {
+    min-height: 0;
+  }
+
+  .hotel-dining-modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .hotel-dining-modal {
+    max-height: 92vh;
+    border-radius: 16px;
+  }
+
+  .hotel-dining-modal-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .hotel-dining-modal-content {
+    padding: 20px;
+  }
+
+  .hotel-dining-modal-content .hotel-dining-features {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotel-dining-card,
+  .hotel-dining-image-wrap img,
+  .hotel-dining-details-button {
+    transition: none;
+  }
+}

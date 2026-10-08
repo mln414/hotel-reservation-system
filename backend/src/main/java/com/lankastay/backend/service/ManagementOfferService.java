@@ -146,6 +146,9 @@ public class ManagementOfferService {
         );
 
         validateTargets(request.targetHotelIds(), request.targetRoomTypeIds());
+        if (!offer.getTitle().equalsIgnoreCase(request.title().trim())) {
+            offer.setSlug(generateUniqueSlug(request.title(), id));
+        }
         offer.setTitle(request.title().trim());
         offer.setShortDescription(request.shortDescription().trim());
         offer.setFullDescription(request.fullDescription().trim());

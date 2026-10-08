@@ -101,6 +101,31 @@ class ManagementRateServiceTest {
     }
 
     @Test
+    @DisplayName("Stores adjustment values separately from fixed nightly prices")
+    void testCreateAdjustmentRate() {
+        Hotel hotel = mock(Hotel.class);
+        Room room = mock(Room.class);
+        when(hotelRepository.findById(301L)).thenReturn(Optional.of(hotel));
+        when(roomRepository.findById(101L)).thenReturn(Optional.of(room));
+        when(room.getHotelId()).thenReturn(301L);
+        when(roomRateRepository.existsByHotelIdAndRoomIdAndRatePlanCodeIgnoreCase(301L, 101L, "WEEKEND-UP"))
+                .thenReturn(false);
+        when(roomRateRepository.save(any(RoomRate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateRateRequest request = new CreateRateRequest(
+                301L, 101L, "Weekend Increase", "WEEKEND-UP", "WEEKEND", "INCREASE_BASE",
+                null, new BigDecimal("15.00"), "PERCENTAGE", null, null, null, 1, "FRI,SAT",
+                "ROOM_ONLY", "FLEXIBLE_24H", false, BigDecimal.ZERO, null
+        );
+
+        RateResponse created = rateService.createRate(manager, request);
+
+        assertEquals(new BigDecimal("15.00"), created.pricingValue());
+        assertEquals("PERCENTAGE", created.changeType());
+        assertNull(created.baseNightlyRate());
+    }
+
+    @Test
     @DisplayName("5. Update existing room rate plan")
     void testUpdateRate() {
         when(roomRateRepository.findById(1L)).thenReturn(Optional.of(sampleRate));

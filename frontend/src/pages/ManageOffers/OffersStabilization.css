@@ -1,0 +1,33 @@
+.offer-context-panel .management-select { min-width: min(520px, 100%); }
+.offer-context-panel .management-select-menu { width: max(100%, 360px); max-height: 360px; overflow: auto hidden; }
+.offer-save-success { display: grid; min-height: 430px; place-items: center; align-content: center; gap: .65rem; padding: 2rem; border: 1px solid #d9e3e1; border-radius: 16px; background: #fff; text-align: center; box-shadow: 0 12px 34px rgba(8,48,73,.07); }
+.offer-save-success > svg { padding: .5rem; border-radius: 50%; background: #e3f4e9; color: #1d6b4a; }
+.offer-save-success h1, .offer-save-success p { margin: 0; }
+.offer-save-success h1 { font-family: Georgia, serif; }
+.offer-save-success > strong { color: #9a6807; font-size: 1.05rem; }
+.offer-save-success > div { display: flex; flex-wrap: wrap; justify-content: center; gap: .65rem; margin-top: .5rem; }
+.offer-public-warning { display: block; margin-top: .55rem; color: #9a4d35; font-weight: 800; }
+.offer-protected-note { display: block; margin-top: .35rem; color: #6d5860; font-weight: 750; }
+.offer-target-labels { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.offer-target-labels > span { display: inline-flex; max-width: 220px; align-items: center; gap: .35rem; padding: .2rem .45rem .2rem .25rem; border-radius: 999px; background: #f3f7f6; }
+.offer-target-labels img { width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; }
+.offer-target-labels b { overflow: hidden; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+.offer-target-labels em { color: #6b7d85; font-size: .76rem; font-style: normal; font-weight: 800; }
+.management-offer-actions { max-width: 250px; flex-wrap: wrap; justify-content: flex-end; }
+.management-offer-actions { display: grid; width: min(250px, 100%); gap: .45rem; }
+.offer-action-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+.offer-action-row--lifecycle { grid-template-columns: 1fr; }
+.management-offer-actions .offer-action-row button { width: 100%; justify-content: center; }
+
+.management-offer-actions .action-deactivate { border-color: #d7b873; background: #fff9e9; color: #805704; }
+.management-offer-actions .action-reactivate { border-color: #9fcbb2; background: #eff9f3; color: #176144; }
+.management-offer-actions .action-delete { border-color: #ddb5b5; background: #fff5f5; color: #963838; }
+@media (max-width: 600px) {
+  .offer-context-panel .management-select { min-width: 0; }
+  .offer-context-panel .management-select-menu { width: auto; }
+  .offer-save-success > div { display: grid; width: 100%; }
+  .management-offer-actions { display: grid; max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-offer-actions { width: 100%; grid-template-columns: 1fr; }
+
+  .management-offer-actions button { justify-content: center; }
+}

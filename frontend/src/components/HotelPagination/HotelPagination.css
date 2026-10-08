@@ -1,0 +1,93 @@
+.hotel-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 34px auto 4px;
+}
+
+.hotel-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hotel-pagination-button {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #d7dfe1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #173249;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 4px 11px rgba(10, 35, 55, 0.045);
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.hotel-pagination-button:hover:not(:disabled):not(.hotel-pagination-button--active) {
+  border-color: #d3a02c;
+  background: #fff6df;
+  color: #8d640f;
+  transform: translateY(-1px);
+}
+
+.hotel-pagination-button--active {
+  border-color: #062844;
+  background: #062844;
+  color: #efbd43;
+  box-shadow: 0 7px 16px rgba(6, 40, 68, 0.18);
+}
+
+.hotel-pagination-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+  box-shadow: none;
+}
+
+.hotel-pagination-button:focus-visible {
+  outline: 3px solid rgba(217, 166, 46, 0.42);
+  outline-offset: 3px;
+}
+
+.hotel-pagination-ellipsis {
+  display: inline-grid;
+  width: 28px;
+  height: 40px;
+  place-items: center;
+  color: #7d8c93;
+  font-weight: 800;
+}
+
+@media (max-width: 460px) {
+  .hotel-pagination,
+  .hotel-pagination-pages {
+    gap: 5px;
+  }
+
+  .hotel-pagination-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+  }
+
+  .hotel-pagination-ellipsis {
+    width: 18px;
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotel-pagination-button {
+    transition: none;
+  }
+}

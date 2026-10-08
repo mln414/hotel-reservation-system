@@ -1,6 +1,7 @@
 package com.lankastay.backend.service;
 
 import com.lankastay.backend.entity.Discount;
+import com.lankastay.backend.exception.ConflictException;
 import com.lankastay.backend.repository.DiscountRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +83,9 @@ public class DiscountService {
             hotelId = assigned;
         }
         authorize(principal, hotelId, true);
+        if (discountRepository.findByCode(request.code().trim()).isPresent()) {
+            throw new ConflictException("A discount with code '" + request.code().trim() + "' already exists.");
+        }
         Discount discount = new Discount();
         discount.setHotelId(hotelId);
         map(discount, request.code(), request.title(), request.description(), request.discountType(), request.discountValue(),
@@ -96,6 +100,11 @@ public class DiscountService {
                 new com.lankastay.backend.exception.ResourceNotFoundException("Discount not found."));
         // Scope comes exclusively from the existing row, never the request body.
         authorize(principal, existing.getHotelId(), true);
+        discountRepository.findByCode(request.code().trim()).ifPresent(other -> {
+            if (!other.getId().equals(id)) {
+                throw new ConflictException("A discount with code '" + request.code().trim() + "' already exists.");
+            }
+        });
         map(existing, request.code(), request.title(), request.description(), request.discountType(), request.discountValue(),
                 request.minimumNights(), request.validFrom(), request.validTo(), request.status());
         return discountRepository.save(existing);

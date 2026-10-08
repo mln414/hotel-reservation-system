@@ -1,0 +1,22 @@
+.management-topbar { position: sticky; z-index: 30; top: 0; display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 20px; padding: 12px clamp(20px, 3vw, 38px); border-bottom: 1px solid #dce4e1; background: rgba(255,255,255,.94); backdrop-filter: blur(12px); }
+.management-topbar-title { display: flex; align-items: center; gap: 12px; }
+.management-topbar-title > button { display: none; }
+.management-topbar-title div { display: grid; gap: 2px; }
+.management-topbar-title span { color: #87959b; font-size: .59rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.management-topbar-title strong { color: #092d47; font-family: Georgia, serif; font-size: 1.28rem; }
+.management-topbar-account { display: flex; align-items: center; gap: 9px; }
+.management-topbar-account > button, .management-topbar-title > button { width: 39px; height: 39px; padding: 0; place-items: center; border: 1px solid #d6dfdc; border-radius: 10px; background: white; color: #405b6c; cursor: pointer; }
+.management-account-icon { display: grid; width: 39px; height: 39px; place-items: center; border-radius: 50%; background: #062844; color: #efbd43; }
+.management-topbar-user-info { display: flex; flex-direction: column; gap: 1px; }
+.management-topbar-user-row { display: flex; align-items: center; gap: 6px; }
+.management-topbar-user-row strong { color: #17384e; font-size: .78rem; font-weight: 700; }
+.management-role-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: .56rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+.management-role-badge.tone-gold { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.management-role-badge.tone-navy { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.management-role-badge.tone-blue { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.management-role-badge.tone-neutral { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.management-role-sublabel { color: #64748b; font-size: .65rem; font-weight: 600; }
+.management-account-icon { text-decoration: none; }
+.management-topbar button:focus-visible { outline: 3px solid rgba(217,166,46,.45); outline-offset: 2px; }
+@media (max-width: 900px) { .management-topbar-title > button { display: grid; } }
+@media (max-width: 520px) { .management-topbar-user-info { display: none; } .management-topbar { min-height: 68px; padding: 10px 15px; } }

@@ -1,0 +1,105 @@
+.management-feedback-stack {
+  position: fixed;
+  z-index: 99999;
+  top: 24px;
+  right: 24px;
+  bottom: auto;
+  left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  width: auto;
+  max-width: 440px;
+  pointer-events: none;
+}
+
+.management-feedback {
+  display: flex;
+  min-width: 280px;
+  max-width: 440px;
+  width: auto;
+  height: auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #166534;
+  box-shadow: 0 10px 30px rgba(6, 36, 53, 0.18);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: feedbackSlideIn 0.25s ease-out;
+}
+
+@keyframes feedbackSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.management-feedback span {
+  flex: 1;
+  word-break: break-word;
+}
+
+.management-feedback svg {
+  flex: 0 0 auto;
+}
+
+.management-feedback--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.management-feedback--info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.management-feedback button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: all 0.15s ease;
+}
+
+.management-feedback button:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 600px) {
+  .management-feedback-stack {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+    align-items: stretch;
+  }
+
+  .management-feedback {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}

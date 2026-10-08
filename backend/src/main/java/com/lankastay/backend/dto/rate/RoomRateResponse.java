@@ -10,6 +10,10 @@ public class RoomRateResponse {
     private String ratePlanName;
     private String ratePlanCode;
     private Double baseNightlyRate;
+    private Double pricingValue;
+    private String pricingMethod;
+    private String changeType;
+    private String rateType;
     private Double weekendNightlyRate;
     private String mealPlan;
     private String cancellationPolicy;
@@ -38,6 +42,18 @@ public class RoomRateResponse {
 
     public Double getBaseNightlyRate() { return baseNightlyRate; }
     public void setBaseNightlyRate(Double baseNightlyRate) { this.baseNightlyRate = baseNightlyRate; }
+
+    public Double getPricingValue() { return pricingValue; }
+    public void setPricingValue(Double pricingValue) { this.pricingValue = pricingValue; }
+
+    public String getPricingMethod() { return pricingMethod; }
+    public void setPricingMethod(String pricingMethod) { this.pricingMethod = pricingMethod; }
+
+    public String getChangeType() { return changeType; }
+    public void setChangeType(String changeType) { this.changeType = changeType; }
+
+    public String getRateType() { return rateType; }
+    public void setRateType(String rateType) { this.rateType = rateType; }
 
     public Double getWeekendNightlyRate() { return weekendNightlyRate; }
     public void setWeekendNightlyRate(Double weekendNightlyRate) { this.weekendNightlyRate = weekendNightlyRate; }

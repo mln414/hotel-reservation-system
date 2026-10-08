@@ -1,0 +1,108 @@
+.room-availability-section {
+  padding-top: 36px;
+  scroll-margin-top: 110px;
+}
+
+.room-availability-form {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    minmax(145px, 1.2fr)
+    minmax(145px, 1.2fr)
+    repeat(3, minmax(78px, 0.62fr))
+    minmax(165px, auto);
+  align-items: end;
+  gap: 11px;
+  overflow: visible;
+  padding: 20px;
+  border: 1px solid rgba(217, 166, 46, 0.66);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 31px rgba(10, 35, 55, 0.09);
+}
+
+.room-availability-field {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.room-availability-field:focus-within {
+  z-index: 20;
+}
+
+.room-availability-field > label {
+  color: #173249;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.room-availability-field .custom-picker,
+.room-availability-field .custom-picker-button {
+  width: 100%;
+}
+
+.room-availability-field .custom-picker-button {
+  border-radius: 11px;
+  font-size: 0.75rem;
+}
+
+.room-availability-submit {
+  display: inline-flex;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #c38b13;
+  border-radius: 11px;
+  background: #dca62a;
+  color: #062844;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.69rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.room-availability-submit:hover {
+  background: #efbd43;
+}
+
+.room-availability-submit:focus-visible {
+  outline: 3px solid rgba(217, 166, 46, 0.45);
+  outline-offset: 3px;
+}
+
+.room-availability-message {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.room-availability-message--error {
+  color: #a33a3a;
+}
+
+.room-availability-message--success {
+  color: #287253;
+}
+
+@media (max-width: 1000px) {
+  .room-availability-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .room-availability-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .room-availability-message {
+    grid-column: 1;
+  }
+}

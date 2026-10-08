@@ -14,7 +14,9 @@ public record UpdateRateRequest(
         @NotBlank @Size(max = 50) String ratePlanCode,
         String rateType,
         String pricingMethod,
-        @NotNull @DecimalMin(value = "0.01", message = "Base nightly rate must be greater than zero") BigDecimal baseNightlyRate,
+        @DecimalMin(value = "0.01", message = "Base nightly rate must be greater than zero") BigDecimal baseNightlyRate,
+        @DecimalMin(value = "0.00", message = "Pricing value cannot be negative") BigDecimal pricingValue,
+        String changeType,
         @DecimalMin(value = "0.01", message = "Weekend nightly rate must be greater than zero") BigDecimal weekendNightlyRate,
         LocalDate validFrom,
         LocalDate validTo,
@@ -25,4 +27,14 @@ public record UpdateRateRequest(
         Boolean depositRequired,
         BigDecimal depositPercentage,
         String notes
-) {}
+) {
+    public UpdateRateRequest(String ratePlanName, String ratePlanCode, String rateType, String pricingMethod,
+                             BigDecimal baseNightlyRate, BigDecimal weekendNightlyRate, LocalDate validFrom,
+                             LocalDate validTo, Integer minimumStay, String applicableDays, String mealPlan,
+                             String cancellationPolicy, Boolean depositRequired, BigDecimal depositPercentage,
+                             String notes) {
+        this(ratePlanName, ratePlanCode, rateType, pricingMethod, baseNightlyRate, null, null,
+                weekendNightlyRate, validFrom, validTo, minimumStay, applicableDays, mealPlan,
+                cancellationPolicy, depositRequired, depositPercentage, notes);
+    }
+}

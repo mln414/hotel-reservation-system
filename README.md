@@ -1,329 +1,412 @@
 # LankaStay Hotels & Resorts – Multi-Property Hotel Reservation System
-[![Backend CI](https://github.com/mln414/hotel-reservation-system/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/mln414/hotel-reservation-system/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/mln414/hotel-reservation-system/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/mln414/hotel-reservation-system/actions/workflows/frontend-ci.yml)
-[![Java 17+](https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
-[![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![MySQL 8.0](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://dev.mysql.com)
+[![Backend CI](https://github.com/LakshanHMK/hotel-reservation-system/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/LakshanHMK/hotel-reservation-system/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/LakshanHMK/hotel-reservation-system/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/LakshanHMK/hotel-reservation-system/actions/workflows/frontend-ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/LakshanHMK/hotel-reservation-system?display_name=tag)](https://github.com/LakshanHMK/hotel-reservation-system/releases/latest)
+[![CodeQL](https://img.shields.io/badge/CodeQL-enabled-success)](https://github.com/LakshanHMK/hotel-reservation-system/security/code-scanning)
+[![Secret Protection](https://img.shields.io/badge/Secret%20Protection-enabled-success)](https://github.com/LakshanHMK/hotel-reservation-system/security)
 
-> **Academic Group Project Declaration**  
+
+> **Academic Project Declaration:**  
+> **Course Module:** SE2030 – Software Engineering (Year 2, Semester 1)  
 > **Institution:** Sri Lanka Institute of Information Technology (SLIIT)  
-> **Course Module:** SE2030 – Software Engineering (Year 2, Semester 1 — 2026)  
-> **Project Group:** `Y2-S1-MLB-B1G1-07`  
 > **Domain:** Enterprise Web-Based Multi-Property Hospitality & Hotel Reservation Platform  
 
 ---
 
 ## 1. Project Overview
 
-**LankaStay Hotels & Resorts** is a full-stack hospitality web platform engineered collaboratively by our software engineering project group for luxury destination resorts across Sri Lanka. The platform bridges the guest booking journey with comprehensive back-office hotel management:
+**LankaStay Hotels & Resorts** is a full-stack hospitality web platform engineered for luxury destination resorts across Sri Lanka. The application provides an end-to-end guest booking experience—spanning destination discovery with interactive maps, real-time room availability, authoritative rate and promotional discounting calculations, verified-stay guest reviews, and customer profiles.
 
-- **For International Travelers & Guests:** Intuitive destination discovery with interactive maps, curated local attractions, real-time room availability, server-authoritative pricing with seasonal discounts, verified-stay guest reviews, and self-service reservation management.
-- **For Hotel Staff & Administration:** A multi-property management portal supporting physical room inventory allocation, maintenance blocking, seasonal promotional offers, guest check-in/out rosters, review moderation, and role-based staff provisioning.
-
----
-
-## 2. Project Team & Module Ownership
-
-This system was designed, developed, and tested following Agile Scrum methodologies across four dedicated development sprints:
-
-| Student ID | Member Name | GitHub | Assigned Module & Functional Ownership |
-|:---:|---|:---:|---|
-| **IT25102064** | **Wickramasinghe G.D.M.H** | [@mln414](https://github.com/mln414) | **Destination Management:** Travel destinations catalog, nearby tourist attractions & experiences, interactive Leaflet map integration, destination image galleries, and active/inactive availability controls. |
-| **IT25101220** | **Lakshan H.M.K** | [@LakshanHMK](https://github.com/LakshanHMK) | **Search, Reservation & Cancellation:** Accommodation search by travel dates and guest count, real-time availability checking, database pessimistic write locking (`SELECT ... FOR UPDATE`), reservation itemization, and cancellation workflows. |
-| **IT25300115** | **Wickramasinghe M.P.T.H** | [@thinuraWiC](https://github.com/thinuraWiC) | **Hotel Management:** Hotel profile management, unique property ID assignment, hotel-to-destination mapping, structured policy records (JSON), and media storage service. |
-| **IT25300345** | **Hansani J.A.T.H** | [@thimasha70](https://github.com/thimasha70) | **Room & Amenity Management:** Room catalog, room categories, amenity definitions, duplicate room number validation within properties, physical room unit inventory, and maintenance blocking. |
-| **IT25102219** | **Wickrama W.M.K.E** | [@wickrama824](https://github.com/wickrama824) | **Room Rate & Promotion (Discount) Management:** Dynamic seasonal room rates for travel periods, promotional discount codes, validity periods, usage limit controls, and promotion eligibility rules. |
-| **IT25103014** | **Weerarathna N.H** | [@heshan0815](https://github.com/heshan0815) | **Review Management:** Verified-stay review submission (strictly gated to completed stays, max 1 review per stay), multi-criteria ratings aggregation, official management replies, and administrator moderation. |
+Simultaneously, LankaStay equips hotel staff and executive managers with an enterprise back-office portal supporting multi-property administration, physical room unit inventory tracking, seasonal promotional codes, and role-based staff provisioning.
 
 ---
 
-## 3. Agile Development Sprints Summary
+## 2. Main Features
 
-The 24-item product backlog was prioritized and delivered across four development sprints:
-
-```mermaid
-gantt
-    title LankaStay Agile Development Sprints (Y2S1 2026)
-    dateFormat  YYYY-MM-DD
-    section Sprints
-    Sprint 1 - Hotel, Destination & Room Management (Weeks 4-6)       :done, s1, 2026-02-01, 2026-02-21
-    Sprint 2 - Rates, Search & Reservation (Weeks 7-8)               :done, s2, 2026-02-22, 2026-03-07
-    Sprint 3 - Cancellation & Management Features (Weeks 9-10)       :done, s3, 2026-03-08, 2026-03-21
-    Sprint 4 - Promotions, Destinations & Reviews (Weeks 11-14)      :done, s4, 2026-03-22, 2026-04-18
-```
-
-- **Sprint 1 (Weeks 4–6) — Hotel, Destination and Room Management:**  
-  Established foundational entities: hotel profiles, destination creation, hotel-to-destination assignment, room catalog, room amenities, and duplicate room number validation within properties.
-- **Sprint 2 (Weeks 7–8) — Rates, Search and Reservation:**  
-  Implemented seasonal room rates, accommodation search by dates and guest count, real-time availability checking with concurrency handling, and reservation booking.
-- **Sprint 3 (Weeks 9–10) — Cancellation and Management Features:**  
-  Reservation cancellation retaining historical records, property deactivation toggles, hotel updates, and promotional codes with defined validity periods.
-- **Sprint 4 (Weeks 11–14) — Promotions, Destinations and Reviews:**  
-  Promotional discount eligibility rules, destination images and nearby attractions curation, verified-stay guest reviews, administrator review moderation, and full system integration.
+- **Geographic Destination Discovery:** Search travel destinations across Sri Lanka with curated tourist attractions and interactive Leaflet map integration.
+- **Multi-Property Hotel Catalog:** Comprehensive property showcases with amenities, photography, contact metadata, and active promotions.
+- **Real-Time Room Availability & Concurrency Control:** Search rooms by date range and guest capacity; zero double-booking guaranteed through database-level pessimistic write locking (`SELECT ... FOR UPDATE`).
+- **Server-Authoritative Pricing & Offers:** Client price tampering is neutralized; nightly subtotals, seasonal discounts, promotional codes, and taxes are computed authoritatively from database records.
+- **Verified-Stay Guest Reviews:** Reviews are restricted to authenticated customers with verified `COMPLETED` stays; database constraints enforce a strict 1-review-per-stay policy.
+- **Customer Guest Portal:** Self-service registration, secure session authentication, profile updating, upcoming stay tracking, and self-cancellation.
+- **Staff Back-Office Portal:** Dedicated role-gated administration workspace for General Managers, Hotel Staff, and Receptionists.
+- **Physical Room Inventory:** Allocation of physical room units (room numbers, floor, maintenance states) to reservations.
+- **Secure Media Upload:** Raster image processing (JPEG, PNG, WebP) with magic-byte deep inspection, file size bounds, and path traversal defenses.
 
 ---
 
-## 4. Key System Features
+## 3. User Roles & Access Control
 
-- 🗺️ **Geographic Destination Discovery:** Search travel hubs across Sri Lanka with Leaflet map coordinates and curated attraction guides.
-- 🏨 **Multi-Property Showcase:** Hotel catalog with high-resolution photography, property amenities, and custom hotel policies.
-- 🔒 **Zero Double-Booking Guarantee:** Real-time concurrency protection via database-level pessimistic write locking (`PESSIMISTIC_WRITE`).
-- 💰 **Server-Authoritative Pricing:** Tamper-proof calculations where nightly subtotals, seasonal discounts, promotional codes, and taxes are computed strictly on the backend.
-- 🛡️ **Verified-Stay Guest Reviews:** Anti-fraud reviews strictly gated to guests who completed their stay, with a strict 1-review-per-stay policy.
-- 🛏️ **Physical Unit Inventory Control:** Front-desk physical room allocation (`Room 101`, `102`), room status toggling, and scheduled maintenance blocking.
-- 👥 **Role-Based Access Control (RBAC):** Access tiers for Public Guests, Registered Customers, Receptionists, Hotel Staff, and General Managers.
-- 🖼️ **Secure Media Uploads:** TwelveMonkeys WebP image optimization with magic-byte deep inspection against malicious file uploads.
+The platform enforces a five-tier access control matrix:
 
----
-
-## 5. User Roles & Access Hierarchy
-
-```mermaid
-graph TD
-    Public[Public Guest<br/>Browse destinations, hotels, and rates]
-    Customer[Customer<br/>Book rooms, cancel bookings, submit verified reviews]
-    Receptionist[Receptionist<br/>Front desk rosters, room unit assignments]
-    Staff[Hotel Staff<br/>Property inventory, room maintenance, local discounts]
-    Manager[General Manager<br/>Global property oversight, staff provisioning, reporting]
-
-    Public --> Customer
-    Public --> Receptionist
-    Receptionist --> Staff
-    Staff --> Manager
-```
-
----
-
-## 6. Technology Stack
-
-### Backend Tier
-- **Language & Runtime:** Java 17+ (LTS)
-- **Framework:** Spring Boot 4.1.0 with Spring MVC & Spring Security
-- **Data Persistence:** Spring Data JPA, Hibernate ORM, Spring `JdbcTemplate`
-- **Database Engine:** MySQL 8.0+
-- **Schema Management:** Flyway Migrations (sequential V1 through V19 + baseline B18)
-- **Image Processing:** TwelveMonkeys ImageIO (WebP conversion)
-- **Build Tool:** Apache Maven 3.9+ (wrapper included)
-
-### Frontend Tier
-- **Framework:** React 19 + Vite 8
-- **Routing:** React Router 8
-- **Design System:** Custom Luxury Vanilla CSS design system with HSL tokens
-- **Interactive Maps:** Leaflet 1.9 & React-Leaflet 5.0
-- **Icons:** Lucide React
-- **Code Quality:** Oxlint
-
----
-
-## 7. Quick Start Guide
-
-Follow these simple steps to run the complete LankaStay platform locally on your machine.
-
-### Prerequisites
-
-| Software | Minimum Version | Check Command |
+| Actor / Role | Description | Access Scope |
 |---|---|---|
-| **Java JDK** | 17 or higher | `java -version` |
-| **Node.js** | 22.22 or higher | `node -v` |
-| **MySQL Server** | 8.0 or higher | `mysql --version` |
-| **Git** | Recent version | `git --version` |
+| **Public Guest** | Unauthenticated browser visitor | Browse destinations, search hotels, view room types, check rates. |
+| **Customer (`CUSTOMER`)** | Registered guest user | Book rooms, manage own reservations, cancel bookings, submit verified reviews, edit personal profile. |
+| **Receptionist (`ROLE_RECEPTIONIST`)** | On-site hotel desk personnel | View property check-in/check-out rosters, assign physical room numbers, assist arriving guests. |
+| **Hotel Staff (`ROLE_HOTEL_STAFF`)** | Property-scoped operations staff | Manage assigned hotel rooms, create property discount codes, monitor inventory. Restricted to assigned property. |
+| **General Manager (`ROLE_MANAGER`)** | System executive administrator | Global multi-property oversight, hotel creation, destination & attraction curation, staff account provisioning. |
 
 ---
 
-### Step 1: Clone the Repository
-```bash
-git clone https://github.com/mln414/hotel-reservation-system.git
-cd hotel-reservation-system
+## 4. Technology Stack
+
+### Frontend
+- **Framework:** React 19.2.8
+- **Build Tool & Bundler:** Vite 8.2.0
+- **Routing:** React Router 8.3.0
+- **Styling:** Vanilla CSS luxury design system with custom CSS tokens & responsive breakpoints
+- **Mapping & Icons:** Leaflet 1.9.4, React-Leaflet 5.0.0, Lucide React 1.29.0
+- **Linting:** Oxlint 1.75.0
+
+### Backend
+- **Language & Runtime:** Java 17+ (Compiled JDK 17, verified on modern JVMs)
+- **Framework:** Spring Boot 4.1.0 / managed Spring Security 7.1.0
+- **Persistence:** Spring Data JPA, Hibernate ORM, Spring `JdbcTemplate`
+- **Image Processing:** TwelveMonkeys ImageIO 3.12.0
+- **Database Driver:** MySQL Connector/J 9.7.0 (Spring Boot dependency management)
+- **Build Tool:** Apache Maven 3.9+ (Maven Wrapper included)
+
+### Database
+- **Database Engine:** MySQL 8.0+
+- **Migration Framework:** Flyway Database Migrations (V1 — V19)
+
+---
+
+## 5. System Architecture
+
+LankaStay uses a layered client-server architecture. The React/Vite single-page application communicates with a Spring Boot REST backend over HTTP/JSON using session-based authentication. Spring Security provides CSRF protection and role-based authorization; customer controllers also validate customer sessions. Services implement business rules, Spring Data JPA and Spring JdbcTemplate provide persistence, and MySQL stores application data with Flyway-managed schema migrations.
+
+```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 220}}}%%
+flowchart TB
+    subgraph clientTier["Client Tier"]
+        spa["React 19 + Vite SPA - Port 5174<br/>Context state: CustomerContext,<br/>StaffContext, ReservationsContext<br/>Route guards: CustomerProtectedRoute<br/>and ManagementProtectedRoute"]
+    end
+    subgraph communicationTier[" "]
+        direction TB
+        communicationTitle["Communication / Security Boundary"]:::tierTitle
+        transport["HTTP / JSON REST + credentialed CORS<br/>Session cookie: LANKASTAY_SESSION<br/>HttpOnly / SameSite=Lax<br/>CSRF header: X-XSRF-TOKEN"]
+        communicationTitle --> transport
+    end
+    subgraph applicationTier["Spring Boot Application Tier - Development port: 8080"]
+        direction LR
+        subgraph securityLayer["Spring Security Layer"]
+            security["Spring Security filter chain<br/>CsrfFilter + CookieCsrfTokenRepository<br/>CorsFilter + allowed-origin configuration<br/>Session SecurityContext persistence:<br/>HttpSessionSecurityContextRepository<br/>AccountStateFilter"]
+        end
+        subgraph controllerLayer["Controller Layer"]
+            controllers["Public Discovery<br/>Customer Auth and Booking<br/>Staff Operations<br/>Management Admin<br/>Customer-session validation"]
+        end
+        subgraph serviceLayer["Service / Business Logic Layer"]
+            services["Reservation Management<br/>Room Availability<br/>Pessimistic Room Locking<br/>Authoritative Pricing<br/>Password Reset + Image Validation<br/>Verified-Stay Reviews"]
+        end
+        subgraph persistenceLayer["Persistence Layer - 18 repositories"]
+            persistence["Spring Data JPA<br/>Parameterized JPQL<br/>Spring JdbcTemplate<br/>Parameterized SQL"]
+        end
+        security --> controllers --> services --> persistence
+    end
+    subgraph databaseTier[" "]
+        direction TB
+        databaseTitle["Database Tier"]:::tierTitle
+        mysql[("MySQL 8+<br/>lankastay_db<br/>Flyway V1-V19<br/>B18 baseline for fresh installations")]
+        databaseTitle --> mysql
+    end
+    spa --> communicationTier --> applicationTier
+    applicationTier -->|JDBC / TCP 3306| databaseTier
+    classDef tierTitle fill:transparent,stroke:transparent,color:#333,font-weight:bold;
 ```
 
 ---
 
-### Step 2: Set Up MySQL Database
-Open your MySQL CLI or MySQL Workbench and run:
+## 6. Repository Directory Structure
 
-```sql
--- 1. Create database
-CREATE DATABASE lankastay_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 2. Create application user
-CREATE USER 'lankastay_app'@'localhost' IDENTIFIED BY 'LankaStay@Secure2026!';
-
--- 3. Grant privileges
-GRANT ALL PRIVILEGES ON lankastay_db.* TO 'lankastay_app'@'localhost';
-FLUSH PRIVILEGES;
+```
+LankaStay/
+├── README.md                           # Master project documentation
+├── .gitignore                          # Hardened Git exclusions
+├── .env.example                        # Environment variable template
+├── CONTRIBUTING.md                     # Contribution & branch standards
+├── SECURITY.md                         # Security policy & disclosure
+├── start-backend.ps1                   # Local backend launcher
+├── start-frontend.ps1                  # Local frontend launcher
+│
+├── .github/                            # GitHub Actions & community files
+│   ├── workflows/
+│   │   ├── backend-ci.yml              # Maven clean test workflow (Java 17)
+│   │   └── frontend-ci.yml             # Vite build & security test workflow
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md
+│   │   └── feature_request.md
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── backend/                            # Spring Boot Java Application
+│   ├── pom.xml                         # Maven dependencies & plugins
+│   ├── mvnw / mvnw.cmd                 # Maven wrapper binaries
+│   ├── .mvn/                           # Maven wrapper configuration
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/lankastay/backend/
+│       │   │   ├── config/             # Spring Security, Web MVC, CORS
+│       │   │   ├── controller/         # REST API Controllers
+│       │   │   ├── dto/                # Request & Response DTOs
+│       │   │   ├── entity/             # JPA Entities
+│       │   │   ├── exception/          # Global exception handlers
+│       │   │   ├── mapper/             # Entity to DTO mappers
+│       │   │   ├── repository/         # Spring Data JPA repositories
+│       │   │   ├── security/           # Principal & filter components
+│       │   │   └── service/            # Core business & transactional logic
+│       │   └── resources/
+│       │       ├── application.properties
+│       │       └── db/migration/       # Flyway SQL migrations (V1 - V19)
+│       └── test/                       # Integration & unit test suite
+│
+├── frontend/                           # React + Vite Application
+│   ├── package.json                    # npm scripts & dependencies
+│   ├── vite.config.js                  # Vite bundler configuration
+│   ├── index.html                      # HTML entrypoint
+│   ├── public/                         # Static public assets
+│   ├── scripts/                        # Automated domain test suites
+│   └── src/
+│       ├── assets/                     # Imagery, branding, logos
+│       ├── components/                 # Reusable UI components
+│       ├── context/                    # React Context state providers
+│       ├── pages/                      # Page views (Guest, Customer, Staff)
+│       ├── routes/                     # AppRoutes and route guards
+│       ├── services/                   # API client service layer
+│       ├── utils/                      # Validation & formatting utilities
+│       ├── App.jsx                     # Application shell
+│       ├── main.jsx                    # React entrypoint
+│       └── index.css                   # Core design system CSS
+│
+├── docs/                               # Project Documentation
+│   ├── architecture/                   # Architecture, Auth & Access specs
+│   ├── database/                       # Schema guide & migration log
+│   ├── api/                            # REST API directory
+│   └── audit-evidence/                 # Security assessments & gap reports
+│
+├── scripts/                            # Operational & QA Scripts
+│   └── qa/                             # Runtime verification scripts
+│
+└── uploads/                            # Runtime media storage (.gitkeep)
+    ├── destinations/
+    └── hotels/
 ```
 
 ---
 
-### Step 3: Configure Environment Variables
-Copy the example environment configuration:
+## 7. Backend Layered Architecture
 
-```powershell
-# Windows PowerShell:
-Copy-Item .env.example .env
-
-# macOS / Linux:
-cp .env.example .env
-```
-
-Open `.env` in your text editor and ensure the database credentials match your local MySQL configuration:
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=lankastay_db
-DB_USER=lankastay_app
-DB_PASSWORD=LankaStay@Secure2026!
-
-# Initial bootstrap manager account
-INITIAL_MANAGER_EMAIL=admin@lankastay.local
-INITIAL_MANAGER_PASSWORD=Admin@LankaStay2026!
-```
+The backend strictly separates concerns across architectural layers:
+- **Controllers:** Bind HTTP requests, enforce `@Valid` input validation, and delegate immediately to domain services. Zero business logic is held in controllers.
+- **DTOs:** Pure data-carrying objects that isolate JPA entities from public exposure. Mass-assignment and over-posting risks are eliminated.
+- **Services:** Transaction boundaries (`@Transactional`), business assertions, concurrency locking, and audit recording.
+- **Repositories:** Clean data access interfaces utilizing Spring Data JPA with 100% prepared/parameterized queries.
+- **Security:** Dual-layer protection incorporating Spring Security for staff RBAC and session attributes for customer operations.
 
 ---
 
-### Step 4: Start the Backend Server
+## 8. Frontend Architecture
 
-You can launch the backend using either the one-click PowerShell launcher or Maven:
+The React single-page application is structured around responsive, accessible components:
+- **Context State Management:** Lightweight, decoupled React contexts (`CustomerContext`, `StaffContext`, `ReservationsContext`) maintain session state without third-party boilerplate.
+- **Route Guards:** `CustomerRoute` redirects unauthenticated guests to `/login`; `StaffRoute` gates management views behind verified staff credentials and enforces initial password rotation.
+- **API Services Layer:** Centralized service modules (`authApi`, `customerApi`, `hotelApi`, `reservationApi`, `managementApi`) encapsulate fetch requests and automatically manage CSRF headers (`X-XSRF-TOKEN`).
+- **Luxury Design System:** Pure Vanilla CSS design system featuring harmonious HSL palettes, smooth transitions, and mobile-responsive layouts.
 
-**Option A — PowerShell Launcher (Recommended on Windows):**
+---
+
+## 9. Database Overview & Flyway Migrations
+
+The active migration lineage is V1–V19. Applied versioned migrations remain immutable.
+Fresh empty MySQL databases use the cumulative schema-only `B18__fresh_install_schema.sql`
+baseline and then V19; existing databases keep their recorded versioned history.
+See [the schema guide](docs/database/SCHEMA.md) for verification and upgrade limits.
+
+- `V1__dashboard_authentication.sql`: Staff accounts, roles (`MANAGER`, `HOTEL_STAFF`, `RECEPTIONIST`), audit log.
+- `V2__hotel_management.sql`: Hotel entities, amenities, photos, and policies.
+- `V3__customer_and_password_reset.sql`: Customer users, profiles, SHA-256 password reset tokens.
+- `V4__hotel_contact_fields.sql`: Extended contact, phone, email, and location metadata.
+- `V5__reservation_core.sql`: Core reservation engine, booking numbers, dates, statuses.
+- `V6__room_management_core.sql`: Room/rate constraints and indexes, room gallery, room-name snapshots.
+- `V7__rate_and_offer_management.sql`: Seasonal rates, promotional packages, and discounts.
+- `V8__review_management.sql`: Guest reviews and staff replies with completed-stay constraints.
+- `V9`: Wider audit event names; `V10`: Reservation review-submission marker and backfill.
+- `V11` & `V12`: Physical room instances (`physical_rooms`) and reservation unit assignments.
+- `V13` — `V15`: Seed data for production-ready hotels across Galle, Colombo, and Kandy.
+- `V16` & `V17`: Discount promotional engine and numeric precision alignment.
+- `V18__destination_management.sql`: Travel destinations and nearby attraction catalogs.
+- `V19__customer_session_version.sql`: Customer session versioning for immediate session invalidation on password reset.
+
+---
+
+## 10. Security Architecture & Controls
+
+LankaStay incorporates enterprise-grade security controls verified by formal security assessments:
+- **Pessimistic Concurrency Locking:** Room inventory uses `@Lock(LockModeType.PESSIMISTIC_WRITE)` (`SELECT ... FOR UPDATE`) within `READ_COMMITTED` transactions, preventing race conditions during concurrent bookings.
+- **Double-Submit Cookie CSRF Protection:** Mutating HTTP requests require the `X-XSRF-TOKEN` header matching the `XSRF-TOKEN` cookie.
+- **HttpOnly Session Cookies:** `LANKASTAY_SESSION` cookie is guarded against JavaScript theft with `HttpOnly=true` and `SameSite=Lax`.
+- **BCrypt Password Hashing:** All credentials are encrypted using BCrypt (strength 12) with complexity validation (8–128 chars, uppercase, lowercase, numbers, special characters).
+- **Horizontal Ownership Enforcement (IDOR Protection):** Customer reservation lookups, cancellations, and reviews strictly filter by `id` and authenticated `customerId` (`findByIdAndCustomerId`).
+- **Deep Raster Image Verification:** Media uploads inspect byte stream magic bytes using `ImageIO.read()` to reject disguised HTML, SVG scripts, and image bombs.
+- **Zero SQL Injection:** 100% prepared queries and parameterized bindings across JPA and `JdbcTemplate`.
+
+---
+
+## 11. Installation Prerequisites
+
+Ensure the following runtimes are installed on your workstation:
+1. **Java Development Kit (JDK):** Version 17 or higher (`java -version`).
+2. **Node.js:** Version 24 (`node -v`) with `npm`; the locked React Router requires at least Node 22.22.0.
+3. **MySQL Server:** Version 8.0 or higher running on `localhost:3306`.
+4. **Git:** Version 2.30 or higher.
+
+---
+
+## 12. Environment Setup
+
+1. Clone the repository locally:
+   ```bash
+   git clone https://github.com/LakshanHMK/hotel-reservation-system.git
+   cd "hotel-reservation-system"
+   ```
+
+2. Initialize your local MySQL database:
+   ```sql
+   CREATE DATABASE lankastay_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'lankastay_app'@'localhost' IDENTIFIED BY 'YourStrongPasswordHere!';
+   GRANT ALL PRIVILEGES ON lankastay_db.* TO 'lankastay_app'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+3. Create your local `.env` configuration file:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` and set your local MySQL credentials:
+   ```ini
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_NAME=lankastay_db
+   DB_USER=lankastay_app
+   DB_PASSWORD=YourStrongPasswordHere!
+   ```
+
+---
+
+## 13. How to Run the Backend
+
+### Option A: Using the PowerShell Launcher
 ```powershell
 .\start-backend.ps1
 ```
 
-**Option B — Using Maven Wrapper:**
+### Option B: Using the Maven Wrapper Directly
 ```powershell
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
-*(On macOS / Linux: `cd backend && ./mvnw spring-boot:run`)*
+*(On macOS/Linux, use `bash ./mvnw spring-boot:run`)*
 
 - The backend will start on **`http://localhost:8080`**.
-- Flyway automatically applies all database migrations on first startup.
+- Flyway applies pending migrations on startup. Fresh installations use B18 then V19;
+  existing installations preserve their applied history. Never mix alternate migration lineages.
+- Completed demo reservations are **disabled by default**. On a disposable development
+  database only, explicitly set `SPRING_PROFILES_ACTIVE=dev` and
+  `LANKASTAY_DEMO_SEED_COMPLETED_RESERVATION=true` in the private environment.
+  Both are required; `prod`/`production` profiles prohibit the demo even alongside `dev`.
+  The opt-in creates real rows for the first active customer. Ordinary catalog seed behavior
+  is unchanged. The dev profile also uses private-console reset-link delivery, not SMTP.
 
 ---
 
-### Step 5: Start the Frontend Application
+## 14. How to Run the Frontend
 
-Open a **new terminal window** and run:
-
-**Option A — PowerShell Launcher:**
+### Option A: Using the PowerShell Launcher
 ```powershell
 .\start-frontend.ps1
 ```
 
-**Option B — Using npm directly:**
+### Option B: Using npm Directly
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-- The React SPA will open at **`http://localhost:5174`** (or `http://localhost:5173`).
+- The frontend single-page application will be available at **`http://localhost:5174`**.
 
 ---
 
-## 8. Default Demo Accounts
+## 15. Testing & Quality Verification
 
-For assessment and testing, the application can be accessed using the following pre-configured credentials:
-
-| Role | Portal URL | Username / Email | Temporary Password | Note |
-|---|---|---|---|---|
-| **General Manager** | `/management/login` | `admin@lankastay.local` | `Admin@LankaStay2026!` | Requires password change on 1st login |
-| **Hotel Staff** | `/management/login` | `staff.galle@lankastay.local` | `Staff@Galle2026!` | Assigned to Galle property |
-| **Receptionist** | `/management/login` | `reception.kandy@lankastay.local` | `Recept@Kandy2026!` | Assigned to Kandy property |
-| **Customer** | `/login` | `customer.demo@lankastay.local` | `Customer@2026!` | Has completed stays for reviews |
-
-*New customers can also self-register at any time via `/register`.*
-
----
-
-## 9. Database Migrations (Flyway V1 – V19)
-
-The project uses Flyway for reproducible, automated database migrations across all team members' workstations:
-
-| Migration | Domain / Purpose |
-|---|---|
-| `V1__dashboard_authentication.sql` | Staff accounts, RBAC roles (`MANAGER`, `HOTEL_STAFF`, `RECEPTIONIST`), audit log |
-| `V2__hotel_management.sql` | Hotel entities, amenities, photos, and policies |
-| `V3__customer_and_password_reset.sql` | Customer users, profiles, SHA-256 password reset tokens |
-| `V4__hotel_contact_fields.sql` | Extended contact information, phone, email, and location coordinates |
-| `V5__reservation_core.sql` | Core reservation schema, booking numbers, dates, pricing breakdowns |
-| `V6__room_management_core.sql` | Room types, rates constraints, room gallery images |
-| `V7__rate_and_offer_management.sql` | Seasonal rates and promotional marketing packages |
-| `V8__review_management.sql` | Verified-stay guest reviews and official staff replies |
-| `V9__customer_profile_audit.sql` | Security audit event enhancements |
-| `V10__review_submission_history.sql` | 1-review-per-stay constraint tracking |
-| `V11__physical_room_inventory.sql` | Physical room units (`Room 101`, `102`) and maintenance blocks |
-| `V12__reservation_physical_room_assignments.sql` | Reservation to physical room unit assignments |
-| `V13__complete_existing_hotel_inventory.sql` | Complete physical room inventory across properties |
-| `V14__restore_existing_hotel_photos.sql` | High-resolution property photography |
-| `V15__publish_three_booking_ready_hotels.sql` | Showcase hotels across Galle, Colombo, and Kandy |
-| `V16__restore_discount_table.sql` | Promotional coupon codes and discount engine |
-| `V17__align_discount_value_type.sql` | Decimal precision alignment for discounts |
-| `V18__destination_management.sql` | Sri Lanka travel destination and attraction catalog |
-| `V19__customer_session_version.sql` | Customer session versioning for immediate invalidation upon password reset |
-| `B18__fresh_install_schema.sql` | Consolidated baseline schema for new development environments |
-
----
-
-## 10. Key REST API Endpoints
-
-| Area | Method | Endpoint | Access Scope | Description |
-|---|---|---|---|---|
-| **Public** | `GET` | `/api/public/hotels` | Public | Search and filter published hotels |
-| **Public** | `GET` | `/api/destinations` | Public | Explore travel destinations & attractions |
-| **Public** | `GET` | `/api/public/reviews` | Public | View approved guest reviews & ratings |
-| **Customer** | `POST` | `/api/v1/customer/auth/login` | Public | Authenticate customer session |
-| **Customer** | `POST` | `/api/v1/customer/reservations` | Customer | Book room with pessimistic concurrency lock |
-| **Customer** | `GET` | `/api/v1/customer/reservations` | Customer | List authenticated guest's reservations |
-| **Customer** | `POST` | `/api/v1/customer/reviews` | Customer | Submit verified review for completed stay |
-| **Staff** | `POST` | `/api/v1/auth/login` | Public | Authenticate staff member session |
-| **Staff** | `GET` | `/api/v1/management/rooms` | Staff | Manage rooms for assigned property |
-| **Staff** | `POST` | `/api/v1/management/physical-rooms/block` | Staff | Place physical room under maintenance |
-| **Management** | `GET` | `/api/v1/management/dashboard` | Manager | Fetch operational KPIs & revenue metrics |
-| **Management** | `POST` | `/api/v1/management/staff` | Manager | Provision new staff accounts |
-
-*For complete API documentation, headers, and request/response payloads, see [docs/api/API_OVERVIEW.md](docs/api/API_OVERVIEW.md).*
-
----
-
-## 11. Automated Testing & Verification
-
-The project includes automated test suites covering backend business rules and frontend components:
-
-### Run Backend Tests
+### Backend Automated Test Suite
+Run unit tests and Spring Boot integration tests:
 ```powershell
 cd backend
 .\mvnw.cmd test
 ```
-*Executes 26 unit and integration test suites covering auth, security policies, pessimistic locking, rate calculations, and database migrations.*
 
-### Run Frontend Verification
+### Frontend Automated Domain Test Suites
+The frontend includes comprehensive unit, integration, and security test scripts:
 ```powershell
 cd frontend
-npm run test:security       # CSRF, auth flow & header security tests
-npm run test:reservations   # Reservation state transition verification
-npm run build               # Verify production build compilation
-npm run lint                # Oxlint static code analysis
+npm run test:security          # Verify CSRF, auth flows, and header security
+npm run test:auth-validation    # Verify customer & staff password policies
+npm run test:reservations       # Verify reservation state transitions
+npm run test:hotels             # Verify hotel discovery and filtering
+npm run test:offers             # Verify promotional discounting logic
+npm run build                   # Verify production bundle compilation
+npm run lint                    # Execute Oxlint code quality verification
 ```
 
 ---
 
-## 12. Ethical & Architectural Considerations
+## 16. User Interface Gallery
 
-Aligned with Section 5 of the project Design Document:
-- **Data Privacy & Minimization:** Only essential booking and guest profile data is collected; sensitive credentials and passwords use BCrypt hashing (strength 12) and are never exposed in logs or APIs.
-- **User Consent & Transparency:** Clear cancellation policies and pricing breakdown rules are shown before booking confirmation; no deceptive hidden fees.
-- **Accessibility & Usability:** Semantic HTML5, accessible form labels, keyboard navigation, and responsive layouts across common desktop and mobile screen sizes.
-- **Security & Role Separation:** Five-tier RBAC ensures staff can access only functions authorized for their role and assigned hotel property.
-- **Fairness & Integrity in Pricing:** Server-authoritative quoting prevents client tampering; promotional usage limits are strictly enforced.
-- **Responsible Review Moderation:** Strictly restricted to completed stays to prevent fraudulent ratings; administrator moderation transparently manages inappropriate content without altering genuine customer feedback.
+| Home & Destination Discovery | Luxury Hotel Showcase |
+|:---:|:---:|
+| *(Interactive Destination Catalog & Leaflet Map)* | *(Room Options, Amenities & Nightly Rates)* |
+
+| Real-Time Reservation Flow | Staff Management Portal |
+|:---:|:---:|
+| *(Date Picker, Dynamic Price Quote & Concurrency Lock)* | *(Inventory Control, Rosters & Room Maintenance)* |
 
 ---
 
-## 13. Academic Declaration & License
+## 17. REST API Overview
 
-This project is submitted in partial fulfillment of the requirements for the **SE2030 Software Engineering** course module at the **Sri Lanka Institute of Information Technology (SLIIT)**.
+| Area | Method | Path | Access Scope | Description |
+|---|---|---|---|---|
+| **Public** | `GET` | `/api/v1/hotels` | Public | Search and filter hotels |
+| **Public** | `GET` | `/api/v1/hotels/destinations` | Public | List travel destinations & attractions |
+| **Public** | `GET` | `/api/v1/discounts/validate` | Public | Validate promotional coupon code |
+| **Customer** | `POST` | `/api/v1/customer/auth/login` | Public | Authenticate customer session |
+| **Customer** | `POST` | `/api/v1/customer/reservations` | Customer | Create booking with pessimistic lock |
+| **Customer** | `GET` | `/api/v1/customer/reservations` | Customer | List authenticated guest's bookings |
+| **Customer** | `POST` | `/api/v1/customer/reviews` | Customer | Submit verified-stay guest review |
+| **Staff** | `POST` | `/api/v1/auth/login` | Public | Authenticate staff session |
+| **Staff** | `GET` | `/api/management/rooms` | Staff | List rooms for assigned hotel |
+| **Management** | `POST` | `/api/management/destinations` | Manager | Create new travel destination |
+| **Admin** | `POST` | `/api/v1/admin/staff` | Manager | Provision new staff account |
 
-All rights reserved © 2026 LankaStay Hotels & Resorts Student Project Team (`Y2-S1-MLB-B1G1-07`). Developed solely for academic evaluation and educational purposes.
+*For complete endpoint parameters and response schemas, see [docs/api/API_OVERVIEW.md](docs/api/API_OVERVIEW.md).*
+
+---
+
+## 18. Team & Contribution Acknowledgement
+
+This software engineering project was designed and developed collaboratively as part of the **SE2030 Software Engineering** curriculum:
+
+- **Group:** `2026-Y2-S1-MLB-B1G1-07`
+- **Key Project Contributors:**
+  - **Lakshan H.M.K** — IT25101220 *(Reservation Architecture, Concurrency Controls, Backend Services)*
+  - **Wickramasinghe M.P.T.H** — IT25300115 *(Hotel Management, Multi-Property Operations)*
+  - **Collaborating Team Members** *(Destination Discovery, Reviews, Customer Experience)*
+
+---
+
+## 19. Academic Declaration & License
+
+This project is submitted in partial fulfillment of the requirements for the **SE2030 Software Engineering** degree module at the **Sri Lanka Institute of Information Technology (SLIIT)**.
+
+All rights reserved © 2026 LankaStay Hotels & Resorts Team. Developed solely for academic assessment and learning purposes.

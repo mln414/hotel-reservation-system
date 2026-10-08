@@ -1,0 +1,45 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:security": "node scripts/securityPhaseOne.test.mjs",
+    "lint": "oxlint",
+    "test:reservations": "node scripts/reservationDomain.test.mjs",
+    "test:content": "node scripts/contentDomain.test.mjs",
+    "test:hotels": "node scripts/hotelDomain.test.mjs",
+    "test:destinations": "node scripts/destinationDomain.test.mjs",
+    "test:rates": "node scripts/rateDomain.test.mjs",
+    "test:destination-discovery": "node scripts/destinationDiscovery.test.mjs",
+    "test:destination-cards": "node scripts/destinationCardVisual.test.mjs",
+    "test:rooms": "node scripts/roomDomain.test.mjs",
+    "test:offers": "node scripts/offerDomain.test.mjs",
+    "test:customer-offers": "node scripts/customerOfferIntegration.test.mjs",
+    "test:offer-visibility": "node scripts/offerRuntimeVisibility.test.mjs",
+    "test:auth-validation": "node scripts/authValidation.test.mjs",
+    "test:customer-reservation": "node scripts/customerReservationIntegration.test.mjs",
+    "test:reviews": "node scripts/reviewDomain.test.mjs && node scripts/reviewEditor.test.mjs",
+    "test:staff": "node scripts/staffDomain.test.mjs",
+    "test:discovery": "node scripts/hotelDiscovery.test.mjs",
+    "test:runtime": "node scripts/runtimeSmoke.mjs / /destinations /destinations/galle /hotels /hotels?collection=coastal-getaways /hotels/302 /rooms/30201 /offers /offers/early-bird-escape /booking/30201 /management/destinations /management/destinations/new /management/destinations/3 /management/destinations/3/edit /management/hotels /management/hotels?section=collections /management/hotels/new /management/hotels/302/setup /management/rooms /management/rooms?hotelId=302 /management/rooms?tab=amenities /management/rooms/new?hotelId=302 /management/rooms/30201 /management/rooms/30201/edit /management/rooms/30201/inventory /management/offers /management/offers?hotelId=302 /management/offers/new /management/offers/1 /management/offers/1/edit /management/reservations",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.29.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-leaflet": "^5.0.0",
+    "react-router": "8.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "vite": "^8.2.0"
+  }
+}

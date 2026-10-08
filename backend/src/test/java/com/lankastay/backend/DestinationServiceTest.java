@@ -10,19 +10,27 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 @Transactional
 public class DestinationServiceTest {
 
     @Autowired
     private DestinationService destinationService;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @Test
     @DisplayName("1. Create Destination draft and verify persistence in database")
@@ -50,6 +58,39 @@ public class DestinationServiceTest {
         assertEquals("Matara", response.getDistrict());
         assertEquals(5.9483, response.getLatitude());
         assertEquals(80.4716, response.getLongitude());
+    }
+
+    @Test
+    @DisplayName("A draft can be saved before its location step is complete")
+    void testCreateIncompleteDestinationDraft() {
+        DestinationCreateRequest req = new DestinationCreateRequest();
+        req.setName("Unfinished destination");
+        req.setShortDescription("Draft saved before location details are entered.");
+        req.setStatus(DestinationStatus.DRAFT);
+        req.setLastSavedStep(1);
+
+        DestinationResponse response = destinationService.createDestination(req);
+        DestinationResponse reloaded = destinationService.getDestinationById(response.getId());
+
+        assertNotNull(response.getId());
+        assertNull(reloaded.getRegion());
+        assertNull(reloaded.getDistrict());
+        assertNull(reloaded.getLatitude());
+        assertNull(reloaded.getLongitude());
+        assertEquals(DestinationStatus.DRAFT, reloaded.getStatus());
+    }
+
+    @Test
+    @DisplayName("Public destination lookup does not expose a draft by numeric ID")
+    void testPublicDestinationLookupHidesDraftById() throws Exception {
+        DestinationCreateRequest req = new DestinationCreateRequest();
+        req.setName("Private numeric destination");
+        req.setShortDescription("An unpublished destination.");
+        req.setStatus(DestinationStatus.DRAFT);
+        DestinationResponse draft = destinationService.createDestination(req);
+
+        mockMvc.perform(get("/api/destinations/{identifier}", draft.getId()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

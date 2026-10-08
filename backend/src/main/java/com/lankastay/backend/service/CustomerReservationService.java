@@ -5,6 +5,10 @@ import com.lankastay.backend.entity.*;
 import com.lankastay.backend.exception.ApiException;
 import com.lankastay.backend.exception.ConflictException;
 import com.lankastay.backend.repository.*;
+import com.lankastay.backend.service.pricing.DiscountCalculationStrategy;
+import com.lankastay.backend.service.reservation.observer.ReservationEvent;
+import com.lankastay.backend.service.reservation.observer.ReservationEventPublisher;
+import com.lankastay.backend.service.reservation.observer.ReservationEventType;
 import org.springframework.http.HttpStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -33,12 +37,15 @@ public class CustomerReservationService {
     private final PhysicalRoomBlockRepository physicalBlocks;
     private final ReservationPhysicalRoomRepository assignments;
     private final ReviewRepository reviews;
+    private final List<DiscountCalculationStrategy> discountStrategies;
+    private final ReservationEventPublisher reservationEvents;
 
     public CustomerReservationService(ReservationRepository reservations, ReservationItemRepository items,
             HotelRepository hotels, RoomRepository rooms, RoomRateRepository rates,
             OfferRepository offers, SecurityAuditService audit, PhysicalRoomRepository physicalRooms,
             PhysicalRoomBlockRepository physicalBlocks, ReservationPhysicalRoomRepository assignments,
-            ReviewRepository reviews) {
+            ReviewRepository reviews, List<DiscountCalculationStrategy> discountStrategies,
+            ReservationEventPublisher reservationEvents) {
         this.reservations = reservations;
         this.items = items;
         this.hotels = hotels;
@@ -50,6 +57,8 @@ public class CustomerReservationService {
         this.physicalBlocks = physicalBlocks;
         this.assignments = assignments;
         this.reviews = reviews;
+        this.discountStrategies = discountStrategies;
+        this.reservationEvents = reservationEvents;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -142,6 +151,7 @@ public class CustomerReservationService {
         item.setRoomNameSnapshot(room.getName());
         ReservationItem savedItem = items.save(item);
         audit.record(customerId, customerId, SecurityEventType.RESERVATION_CREATED, null, "SUCCESS");
+        reservationEvents.publishAfterCommit(new ReservationEvent(saved.getId(), customerId, ReservationEventType.CREATED));
         return ReservationResponse.from(saved, List.of(ReservationItemResponse.from(savedItem)));
     }
 
@@ -300,6 +310,7 @@ public class CustomerReservationService {
         reservation.setCancellationNote(trimToNull(request.note()));
         reservation.setCancelledByType(actorType);
         reservations.save(reservation);
+        reservationEvents.publishAfterCommit(new ReservationEvent(reservation.getId(), reservation.getCustomerId(), ReservationEventType.CANCELLED));
     }
 
     private void validateDatesAndGuests(CreateReservationRequest request) {
@@ -435,18 +446,12 @@ public class CustomerReservationService {
             }
         }
 
-        // Calculate discount amount
-        BigDecimal discount = BigDecimal.ZERO;
-        if ("PERCENTAGE".equalsIgnoreCase(offer.getDiscountType())) {
-            discount = subtotal.multiply(offer.getDiscountValue())
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        } else if ("FIXED_AMOUNT".equalsIgnoreCase(offer.getDiscountType())) {
-            if ("PER_NIGHT".equalsIgnoreCase(offer.getFixedDiscountScope())) {
-                discount = offer.getDiscountValue().multiply(BigDecimal.valueOf(nights * quantity));
-            } else {
-                discount = offer.getDiscountValue();
-            }
-        }
+        // Calculate discount amount using Strategy pattern
+        BigDecimal discount = discountStrategies.stream()
+                .filter(s -> s.supports(offer.getDiscountType()))
+                .findFirst()
+                .map(s -> s.calculateDiscount(offer, subtotal, nights, quantity))
+                .orElse(BigDecimal.ZERO);
 
         if (discount.compareTo(subtotal) > 0)
             discount = subtotal;
