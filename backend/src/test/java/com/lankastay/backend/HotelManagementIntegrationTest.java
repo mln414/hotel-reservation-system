@@ -5,6 +5,7 @@ package com.lankastay.backend;
 
 import com.lankastay.backend.entity.*;
 import com.lankastay.backend.repository.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,15 @@ class HotelManagementIntegrationTest {
         dest.setStatus(DestinationStatus.ACTIVE);
         dest.setMainImage("/assets/test.png");
         destinationId = destinations.save(dest).getId();
+    }
+
+    @AfterEach
+    void cleanup() {
+        audits.deleteAll();
+        offers.deleteAll();
+        hotels.deleteAll();
+        users.deleteAll();
+        destinations.deleteAll();
     }
 
     @Test

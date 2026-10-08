@@ -40,11 +40,19 @@ public class AttractionServiceTest {
 
     @BeforeEach
     void setUp() {
-        colomboDestinationId = destinationRepository.saveAndFlush(
-                createDestination("Test Colombo", "test-colombo")).getId();
-        Destination galle = destinationRepository.saveAndFlush(
-                createDestination("Test Galle", "test-galle"));
+        Destination colombo = destinationRepository.findBySlug("attr-test-colombo")
+                .orElseGet(() -> destinationRepository.saveAndFlush(
+                        createDestination("Attraction Test Colombo", "attr-test-colombo")));
+        colomboDestinationId = colombo.getId();
+
+        Destination galle = destinationRepository.findBySlug("attr-test-galle")
+                .orElseGet(() -> destinationRepository.saveAndFlush(
+                        createDestination("Attraction Test Galle", "attr-test-galle")));
         galleDestinationId = galle.getId();
+
+        attractionRepository.deleteByDestinationId(galleDestinationId);
+        attractionRepository.deleteByDestinationId(colomboDestinationId);
+        attractionRepository.flush();
 
         String[] attractionNames = {
                 "Galle Fort",
